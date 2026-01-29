@@ -8,6 +8,13 @@ import os
 import json
 from datetime import datetime
 
+mantenimiento = True  # Cambia a False para abrir la app
+
+if mantenimiento:
+    st.title("🚧 App en mantenimiento")
+    st.info("Estamos realizando actualizaciones. Volveremos pronto.")
+    st.stop() # Esto detiene todo lo que sigue abajo
+
 # ================== CONFIGURACIÓN Y CONSTANTES ==================
 st.set_page_config(
     page_title="Receipt Tracker", 
@@ -336,4 +343,5 @@ with p2:
     st.markdown(f"<p style='text-align:center; color:#64748b; font-size:14px;'>Página {st.session_state.current_page} de {pages}</p>", unsafe_allow_html=True)
 with p3:
     if st.button("Siguiente ➡️", use_container_width=True) and st.session_state.current_page < pages:
+
         st.session_state.current_page += 1; st.rerun()
