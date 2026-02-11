@@ -8,7 +8,7 @@ import os
 import json
 from datetime import datetime
 
-mantenimiento = False  # Cambia a False para abrir la app
+mantenimiento = True# Cambia a False para abrir la app
 
 if mantenimiento:
     st.title("🚧 App en mantenimiento")
@@ -345,6 +345,7 @@ with p3:
     if st.button("Siguiente ➡️", use_container_width=True) and st.session_state.current_page < pages:
 
         st.session_state.current_page += 1; st.rerun()
+
 
 
 
