@@ -351,7 +351,7 @@ if not st.session_state.authenticated:
     with col_mid:
         with st.container():
             st.markdown('<div class="login-box-container"></div>', unsafe_allow_html=True)
-            st.markdown("<h1 style='text-align: center; margin-bottom: 0;'>🎯</h1>", unsafe_allow_html=True)
+            st.markdown("<h1 style='text-align: center; margin-bottom: 0;'>💿</h1>", unsafe_allow_html=True)
             st.markdown("<h2 style='color: #1e3a8a; text-align: center; margin-top: 0; font-family: Segoe UI;'>Accede</h2>", unsafe_allow_html=True)
             
             c1, c2 = st.columns(2)
@@ -497,6 +497,7 @@ with p2:
 with p3:
     if st.button("Siguiente ➡️", use_container_width=True) and st.session_state.current_page < pages:
         st.session_state.current_page += 1; st.rerun()
+
 
 
 
