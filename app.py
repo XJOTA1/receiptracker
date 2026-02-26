@@ -17,17 +17,35 @@ st.set_page_config(
 )
 
 # URL de sonido "pop" sutil para interacciones
-BUBBLE_POP = "https://www.soundjay.com/buttons/sounds/button-20.mp3"
+BUBBLE_POP = "https://www.soundjay.com/buttons_c2026/sounds/button-19.mp3"
 
 # --- LÓGICA DE SESIÓN ---
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
-# --- CSS FRUTIGER AERO FULL EXPERIENCE ---
+# --- CSS FRUTIGER AERO FULL EXPERIENCE + LIMPIEZA INTERFAZ ---
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&display=swap');
     
+    /* 0. LIMPIEZA DE INTERFAZ STREAMLIT (Oculta Deploy, Menu y Footer) */
+    header {{visibility: hidden;}}
+    #MainMenu {{visibility: hidden;}}
+    footer {{visibility: hidden;}}
+    .stAppDeployButton {{display:none;}}
+    [data-testid="stHeader"] {{background: rgba(0,0,0,0);}}
+    
+    /* Eliminar espacio superior */
+    .block-container {{
+        padding-top: 2rem !important;
+        padding-bottom: 0rem !important;
+    }}
+
+    /* Ocultar iconos de enlace en títulos */
+    .element-container:has(#stHeader) + div button {{
+        display: none !important;
+    }}
+
     /* 1. Fondo Aurora Animado */
     .stApp {{
         background: linear-gradient(-45deg, #a7f3d0, #34d399, #3b82f6, #60a5fa);
@@ -76,12 +94,13 @@ st.markdown(f"""
         transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }}
 
-    /* MODO ENFOQUE */
+    /* MODO ENFOQUE Y GLASSMORPHISM */
     .order-card:hover, .order-card-compact:hover {{
         transform: scale(1.02) translateY(-5px);
         z-index: 10;
         box-shadow: 0 20px 40px rgba(0,0,0,0.15), inset 0 0 20px rgba(255,255,255,0.6);
         border-color: rgba(255, 255, 255, 1);
+        background: rgba(255, 255, 255, 0.7);
     }}
 
     /* --- LOGIN PORTAL HORIZONTAL --- */
@@ -118,6 +137,7 @@ st.markdown(f"""
 
     .order-card {{
         background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.5) 100%);
+        backdrop-filter: blur(10px);
         border-radius: 30px;
         padding: 24px;
         margin-bottom: 25px;
@@ -140,16 +160,6 @@ st.markdown(f"""
         backdrop-filter: blur(5px);
     }}
 
-    .order-card::before {{
-        content: "";
-        position: absolute;
-        top: 0; left: 0; right: 0; height: 45%;
-        background: linear-gradient(to bottom, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 100%);
-        border-radius: 30px 30px 100% 100%;
-        z-index: 1;
-        pointer-events: none;
-    }}
-
     .receipt-id {{
         font-family: 'Segoe UI', sans-serif;
         position: relative;
@@ -158,14 +168,12 @@ st.markdown(f"""
         padding: 10px 18px;
         border-radius: 12px;
         font-weight: 700;
-        overflow: hidden;
         border: 1px solid #4a5568;
         box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         display: inline-block;
     }}
 
     .sku-tag {{
-        position: relative;
         background: linear-gradient(to bottom, #ffffff 0%, #e2e8f0 100%);
         color: #2563eb;
         padding: 6px 14px;
@@ -174,7 +182,13 @@ st.markdown(f"""
         font-size: 11px;
         border: 1px solid rgba(59, 130, 246, 0.3);
         box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        overflow: hidden;
+    }}
+
+    .sku-tag-disabled {{
+        opacity: 0.4;
+        background: #cbd5e1 !important;
+        text-decoration: line-through;
+        color: #64748b !important;
     }}
 
     .badge {{
@@ -182,19 +196,22 @@ st.markdown(f"""
         border-radius: 50px;
         font-size: 11px;
         font-weight: 700;
-        text-shadow: 0 1px 1px rgba(255,255,255,0.5);
+        text-shadow: 0 1px 1px rgba(0,0,0,0.2);
         box-shadow: inset 0 -2px 4px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.1);
         border: 1px solid rgba(255,255,255,0.4);
+        color: white;
     }}
+    .badge-nc {{ background: linear-gradient(135deg, #f87171 0%, #ef4444 100%); }}
+    .badge-pending {{ background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: #451a03; }}
+    .badge-success {{ background: linear-gradient(135deg, #34d399 0%, #10b981 100%); }}
 
     .qr-glass-container {{
-        background: rgba(255, 255, 255, 0.4);
+        background: white;
         padding: 8px;
         border-radius: 18px;
         border: 1px solid rgba(255, 255, 255, 0.8);
-        box-shadow: 0 8px 16px rgba(0,0,0,0.1), inset 0 2px 4px rgba(255,255,255,0.8);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
         display: inline-block;
-        backdrop-filter: blur(5px);
     }}
 
     .stButton button {{
@@ -207,7 +224,7 @@ st.markdown(f"""
     }}
 
     [data-testid="stSidebar"] {{
-        background: rgba(255, 255, 255, 0.1) !important;
+        background: rgba(255, 255, 255, 0.05) !important;
         backdrop-filter: blur(20px);
         border-right: 1px solid rgba(255, 255, 255, 0.2);
     }}
@@ -228,7 +245,7 @@ st.markdown(f"""
     </script>
 """, unsafe_allow_html=True)
 
-# --- CONFIGURACIÓN DE RUTAS ---
+# ================== FUNCIONES LOGIC & AUTH ==================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SOURCE_DIR = os.path.join(BASE_DIR, "source")
 DB_PATH = os.path.join(BASE_DIR, "data.db")
@@ -240,13 +257,10 @@ SKU_ENVIO = "5966673"
 PAGE_SIZE = 10 
 DIAS_VENTANA_ESTANDAR = 12 
 
-# ================== FUNCIONES LOGIC & AUTH ==================
 def init_users_db():
-    """Inicia la tabla de usuarios si no existe y crea un admin por defecto."""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("CREATE TABLE IF NOT EXISTS usuarios (user TEXT PRIMARY KEY, password TEXT)")
-    # Agregar admin por defecto si la tabla está vacía
     c.execute("SELECT COUNT(*) FROM usuarios")
     if c.fetchone()[0] == 0:
         c.execute("INSERT INTO usuarios VALUES (?, ?)", ("admin", "1234"))
@@ -254,7 +268,6 @@ def init_users_db():
     conn.close()
 
 def check_login(user, password):
-    """Verifica credenciales contra la base de datos."""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("SELECT * FROM usuarios WHERE user = ? AND password = ?", (user, password))
@@ -264,7 +277,10 @@ def check_login(user, password):
 
 def clean_sku(sku):
     if pd.isna(sku): return ""
-    return str(sku).strip().lstrip('0')
+    sku_str = str(sku).strip()
+    if sku_str.endswith('.0'):
+        sku_str = sku_str[:-2]
+    return sku_str.lstrip('0')
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
@@ -280,8 +296,9 @@ def init_db():
 def sync_data():
     with st.spinner("🚀 Sincronizando datos..."):
         try:
-            df_o = pd.read_excel(FILE_ORDENES)
-            df_f = pd.read_excel(FILE_FACTURAS)
+            df_o = pd.read_excel(FILE_ORDENES, dtype={'SKU': str})
+            df_f = pd.read_excel(FILE_FACTURAS, dtype={'f_item_code': str})
+            
             conn = sqlite3.connect(DB_PATH)
             c = conn.cursor()
             c.execute("DELETE FROM ordenes"); c.execute("DELETE FROM ordenes_sku"); c.execute("DELETE FROM facturas")
@@ -340,6 +357,11 @@ def get_qr_base64(data):
     qr.save(buf, format="PNG")
     return base64.b64encode(buf.getvalue()).decode()
 
+def get_local_img_base64(path):
+    with open(path, "rb") as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
+
 def load_nc_state():
     return json.load(open(NC_FILE)) if os.path.exists(NC_FILE) else {}
 
@@ -350,9 +372,17 @@ if not st.session_state.authenticated:
     _, col_mid, _ = st.columns([0.1, 5, 0.1])
     with col_mid:
         with st.container():
+            icon_path = os.path.join(BASE_DIR, "media", "icon06.png")
+            icon_html = "🎯"
+            if os.path.exists(icon_path):
+                img_base_64 = get_local_img_base64(icon_path)
+                icon_html = f'<img src="data:image/png;base64,{img_base_64}" width="80">'
+
             st.markdown('<div class="login-box-container"></div>', unsafe_allow_html=True)
-            st.markdown("<h1 style='text-align: center; margin-bottom: 0;'>💿</h1>", unsafe_allow_html=True)
-            st.markdown("<h2 style='color: #1e3a8a; text-align: center; margin-top: 0; font-family: Segoe UI;'>Accede</h2>", unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align: center; margin-bottom: 10px;'>{icon_html}</div>", unsafe_allow_html=True)
+            
+            # Título sin etiqueta 'h3' para evitar icono de enlace de Streamlit
+            st.markdown("<div style='color: #1e3a8a; text-align: center; font-size: 1.75rem; font-weight: 700; font-family: Segoe UI; margin-bottom: 20px;'>Receipt Tracker</div>", unsafe_allow_html=True)
             
             c1, c2 = st.columns(2)
             with c1:
@@ -361,7 +391,7 @@ if not st.session_state.authenticated:
                 pass_login = st.text_input("Contraseña", placeholder="Contraseña", type="password", label_visibility="collapsed")
             
             st.write("")
-            if st.button("Sincronizar Identidad", use_container_width=True):
+            if st.button("Acceder", use_container_width=True):
                 if check_login(user_login, pass_login):
                     st.session_state.authenticated = True
                     st.rerun()
@@ -378,7 +408,8 @@ nc_state = load_nc_state()
 
 # SIDEBAR
 with st.sidebar:
-    st.markdown("<h2 style='color: #1e3a8a; text-shadow: 0 1px 2px white; font-family: Segoe UI;'>📊 Panel de Control</h2>", unsafe_allow_html=True)
+    st.markdown("<div style='color: #1e3a8a; font-size: 1.5rem; font-weight: 700; text-shadow: 0 1px 2px white; font-family: Segoe UI;'>📊 Panel de Control</div>", unsafe_allow_html=True)
+    st.write("")
     view_compact = st.toggle("Vista Compacta", value=False)
     
     conn = sqlite3.connect(DB_PATH)
@@ -388,12 +419,11 @@ with st.sidebar:
     
     stats_html = f"""
         <div style='background: rgba(255, 255, 255, 0.4); padding: 20px; border-radius: 25px; border: 1px solid rgba(255, 255, 255, 0.8); position: relative; overflow: hidden;'>
-            <div style='position:absolute; top:0; left:0; right:0; height:45%; background:linear-gradient(to bottom, rgba(255,255,255,0.6), rgba(255,255,255,0)); pointer-events:none;'></div>
             <p style='margin:0; font-size:12px; font-weight:700; color:#1e40af;'>ÓRDENES</p>
-            <h2 style='margin:0; color:#1e3a8a;'>{o_count}</h2>
+            <h2 style='margin:0; color:#1e3a8a; border:none;'>{o_count}</h2>
             <hr style='margin:10px 0; border:0; border-top:1px solid rgba(255,255,255,0.6);'>
             <p style='margin:0; font-size:11px; font-weight:700; color:#1e40af;'>FACTURAS</p>
-            <h2 style='margin:0; color:#1e3a8a;'>{f_count}</h2>
+            <h2 style='margin:0; color:#1e3a8a; border:none;'>{f_count}</h2>
         </div>
     """
     st.markdown(stats_html, unsafe_allow_html=True)
@@ -407,8 +437,8 @@ with st.sidebar:
         st.session_state.authenticated = False
         st.rerun()
 
-# Header Principal
-st.markdown("<h1 style='text-align: center; color: #1e3a8a; text-shadow: 0 2px 4px white;'>🎯 Receipt Tracker</h1>", unsafe_allow_html=True)
+# Header Principal sin h1 para evitar icono de ancla
+st.markdown("<div style='text-align: center; color: #1e3a8a; font-size: 2.5rem; font-weight: 800; text-shadow: 0 2px 4px white; margin-bottom: 20px;'>🎯 Receipt Tracker</div>", unsafe_allow_html=True)
 search = st.text_input("", placeholder="🔍 Buscar ID de orden...", label_visibility="collapsed")
 
 full_df = load_base_df()
@@ -430,7 +460,8 @@ for _, r in df_page.iterrows():
     
     bonus = st.session_state.extra_days.get(order, 0)
     factura = None if es_nc else find_matching_factura(active_skus, f_creacion, bonus)
-    badge_class = "badge-nc" if es_nc else ("badge-pending" if factura else "badge-alert")
+    
+    badge_class = "badge-nc" if es_nc else ("badge-success" if factura else "badge-pending")
     badge_text = "Nota de Crédito" if es_nc else ("Sincronizado" if factura else "Pendiente")
 
     if view_compact:
@@ -447,14 +478,15 @@ for _, r in df_page.iterrows():
     else:
         qr_img = get_qr_base64(str(factura or "PENDIENTE"))
         tags_html = "".join([f'<span class="sku-tag {"sku-tag-disabled" if s in st.session_state.disabled_skus[order] else ""}">{s}</span>' for s in all_skus])
+        
         st.markdown(f"""
             <div class="order-card">
                 <div style="display:flex; justify-content:space-between; align-items:start;">
                     <div style="flex:1;">
                         <span class="badge {badge_class}">{badge_text}</span>
-                        <h3 style="margin:8px 0 0 0; color:#1e293b;">Orden #{order}</h3>
+                        <div style="margin:8px 0 0 0; color:#1e293b; font-size: 1.5rem; font-weight: 700;">Orden #{order}</div>
                         <p style="margin:2px 0; font-size:12px; color:#64748b;">📅 {f_creacion or "—"} · ⏱️ Ventana: {DIAS_VENTANA_ESTANDAR + bonus}d</p>
-                        <div class="receipt-id">🧾 {factura if factura else ("CANCELADO (NC)" if es_nc else "BUSCANDO...")}</div>
+                        <div style="margin: 15px 0;"><div class="receipt-id">🧾 {factura if factura else ("CANCELADO (NC)" if es_nc else "BUSCANDO...")}</div></div>
                         <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:6px;">{tags_html}</div>
                     </div>
                     <div class="qr-glass-container">
@@ -497,7 +529,3 @@ with p2:
 with p3:
     if st.button("Siguiente ➡️", use_container_width=True) and st.session_state.current_page < pages:
         st.session_state.current_page += 1; st.rerun()
-
-
-
-
