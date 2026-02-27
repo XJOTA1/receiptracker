@@ -24,7 +24,7 @@ BUBBLE_POP = "https://www.soundjay.com/buttons_c2026/sounds/beep-23.mp3"
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
-# --- CSS PLAYSTATION XMB THEME (PS3/PS4/PSVITA/PS5) + DARK/LIGHT MODE ---
+# --- CSS PLAYSTATION XMB THEME (PS3/PS4/PSVITA/PS5) + DARK/LIGHT MODE + DEGRADADO ANIMADO ---
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=SST:wght@400;600;700&family=Segoe+UI:wght@400;600;700&display=swap');
@@ -68,69 +68,59 @@ st.markdown(f"""
         --sidebar-bg: rgba(255, 255, 255, 0.3);
     }}
 
+    /* 1. SCROLLBAR PERSONALIZADO */
+    ::-webkit-scrollbar {{ width: 8px; height: 8px; }}
+    ::-webkit-scrollbar-track {{ background: transparent; }}
+    ::-webkit-scrollbar-thumb {{ background: var(--card-border); border-radius: 10px; }}
+    ::-webkit-scrollbar-thumb:hover {{ background: var(--border-hover); }}
+
     /* TRANSICIÓN GLOBAL SUAVE */
     body, .stApp, .login-box-container, p, div, span, h1, h2, h3, button, input {{
         transition: background 0.5s ease-in-out, color 0.5s ease-in-out, border-color 0.5s ease-in-out, box-shadow 0.5s ease-in-out !important;
         font-family: 'Segoe UI', 'SST', sans-serif;
     }}
 
-    /* FIX: Quitar el borde y padding extra del formulario de Streamlit */
+    /* FIXES STREAMLIT */
     [data-testid="stForm"] {{ border: none !important; padding: 0 !important; }}
-    #MainMenu {{visibility: hidden;}}
-    footer {{visibility: hidden;}}
-    .stAppDeployButton {{display:none;}}
+    #MainMenu, footer, .stAppDeployButton {{visibility: hidden; display: none;}}
     [data-testid="stHeader"] {{background: rgba(0,0,0,0);}}
-    
-    .block-container {{
-        padding-top: 2rem !important;
-        padding-bottom: 0rem !important;
-    }}
+    .block-container {{ padding-top: 2rem !important; padding-bottom: 0rem !important; }}
+    .element-container:has(#stHeader) + div button {{ display: none !important; }}
 
-    .element-container:has(#stHeader) + div button {{
-        display: none !important;
-    }}
-
-    /* 1. Fondo Gradiente Animado (Base para el Canvas JS) */
+    /* 2. FONDO DEGRADADO ANIMADO (MODIFICADO PARA MOVIMIENTO) */
     #ps-bg-canvas {{
         background: var(--bg-gradient) !important;
-        background-size: 300% 300% !important;
-        animation: gradientBG 25s ease infinite;
+        background-size: 300% 300% !important; /* Aumentado para que el degradado pueda fluir */
+        animation: gradientFlow 20s ease infinite; /* Nueva animación de flujo */
     }}
-
-    /* Volvemos transparentes las capas base de Streamlit para dejar ver el canvas */
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {{
         background: transparent !important;
         overflow-x: hidden;
     }}
 
-    @keyframes gradientBG {{
+    /* Definición de la animación de flujo del degradado */
+    @keyframes gradientFlow {{
         0% {{ background-position: 0% 50%; }}
         50% {{ background-position: 100% 50%; }}
         100% {{ background-position: 0% 50%; }}
     }}
 
-    /* 2. Animación de Transición Slide In */
+    /* 3. ANIMACIONES DIFERENCIADAS (NORMAL VS COMPACT) */
     @keyframes slideIn {{
-        0% {{ opacity: 0; transform: translateX(50px) scale(0.98); }}
+        0% {{ opacity: 0; transform: translateX(50px) scale(0.95); }}
         100% {{ opacity: 1; transform: translateX(0) scale(1); }}
     }}
-
-    .order-card, .order-card-compact {{
-        animation: slideIn 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+    
+    @keyframes slideUpBounce {{
+        0% {{ opacity: 0; transform: translateY(30px) scale(0.98); }}
+        70% {{ transform: translateY(-3px) scale(1); }}
+        100% {{ opacity: 1; transform: translateY(0) scale(1); }}
     }}
 
-    /* Efecto Hover (Interacción) */
-    .order-card:hover, .order-card-compact:hover {{
-        transform: scale(1.02) translateY(-5px);
-        z-index: 10;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.15), inset 0 0 20px rgba(255,255,255,0.6);
-        border-color: var(--border-hover);
-        background: var(--card-bg-hover);
-    }}
-
-    /* Estructuras de Tarjetas */
+    /* EFECTO CASCADA Y HOVER */
     .order-card {{
+        opacity: 0; 
+        animation: slideIn 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
         background: var(--card-bg);
         backdrop-filter: blur(15px);
         border-radius: 16px;
@@ -139,9 +129,12 @@ st.markdown(f"""
         position: relative;
         overflow: hidden;
         border: 1px solid var(--card-border);
+        transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease, border-color 0.4s ease, background 0.4s ease !important;
     }}
 
     .order-card-compact {{
+        opacity: 0; 
+        animation: slideUpBounce 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
         background: var(--card-bg);
         border-radius: 12px;
         padding: 12px 20px;
@@ -151,6 +144,15 @@ st.markdown(f"""
         justify-content: space-between;
         border: 1px solid var(--card-border);
         backdrop-filter: blur(10px);
+        transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease, border-color 0.4s ease, background 0.4s ease !important;
+    }}
+
+    .order-card:hover, .order-card-compact:hover {{
+        transform: scale(1.02) translateY(-5px);
+        z-index: 10;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.15), inset 0 0 20px rgba(255,255,255,0.6);
+        border-color: var(--border-hover);
+        background: var(--card-bg-hover);
     }}
 
     /* --- LOGIN PORTAL HORIZONTAL --- */
@@ -175,6 +177,7 @@ st.markdown(f"""
         50% {{ transform: translateY(-10px); }}
     }}
 
+    /* INPUTS BASE Y GLOW NEÓN */
     .stTextInput input {{
         background: var(--input-bg) !important;
         border-radius: 12px !important;
@@ -183,6 +186,12 @@ st.markdown(f"""
         border: 1px solid var(--card-border) !important;
         font-weight: 600 !important;
         color: var(--input-text) !important;
+        transition: all 0.3s ease !important;
+    }}
+    .stTextInput input:focus {{
+        border-color: var(--border-hover) !important;
+        box-shadow: var(--accent-glow) !important;
+        outline: none !important;
     }}
 
     .receipt-id {{
@@ -208,7 +217,6 @@ st.markdown(f"""
         border: 1px solid var(--card-border);
         backdrop-filter: blur(5px);
     }}
-
     .sku-tag-disabled {{
         opacity: 0.3;
         background: rgba(100,100,100,0.2) !important;
@@ -226,7 +234,6 @@ st.markdown(f"""
         border: 1px solid rgba(255,255,255,0.2);
         color: white;
     }}
-    /* Colores estilo Trofeos/Notificaciones */
     .badge-nc {{ background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%); }}
     .badge-pending {{ background: linear-gradient(135deg, #d69e2e 0%, #b7791f 100%); }}
     .badge-success {{ background: linear-gradient(135deg, #3182ce 0%, #2b6cb0 100%); }}
@@ -240,7 +247,6 @@ st.markdown(f"""
         display: inline-block;
     }}
 
-    /* ESTILO DE BOTONES */
     .stButton button, div[data-testid="stFormSubmitButton"] button {{
         background: var(--btn-bg) !important;
         border-radius: 25px !important;
@@ -264,7 +270,7 @@ st.markdown(f"""
         border-right: 1px solid var(--card-border);
     }}
     
-    /* Toggle Button Flotante */
+    /* TOGGLE TEMA (ARRIBA) */
     .theme-toggle-btn {{
         position: fixed;
         top: 20px;
@@ -289,6 +295,31 @@ st.markdown(f"""
         transform: scale(1.1);
         box-shadow: var(--accent-glow);
     }}
+
+    /* 3. TOGGLE VISTA COMPACTA FLOTANTE (DEBAJO DEL TEMA) */
+    div[data-testid="stToggle"] {{
+        position: fixed !important;
+        top: 80px !important;
+        right: 20px !important;
+        z-index: 999999 !important;
+        background: var(--card-bg) !important;
+        backdrop-filter: blur(10px) !important;
+        padding: 5px 15px !important;
+        border-radius: 25px !important;
+        border: 1px solid var(--card-border) !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
+        transition: all 0.3s ease !important;
+    }}
+    div[data-testid="stToggle"]:hover {{
+        transform: scale(1.05) !important;
+        box-shadow: var(--accent-glow) !important;
+        border-color: var(--border-hover) !important;
+    }}
+    div[data-testid="stToggle"] p {{
+        color: var(--text-heading) !important;
+        font-weight: 600 !important;
+        margin: 0 !important;
+    }}
     </style>
     
     <audio id="popAudio">
@@ -303,18 +334,18 @@ components.html("""
         window.parent.psThemeInjected = true;
         const parentDoc = window.parent.document;
 
-        // 1. Lógica de Sonido Pop
+        // Lógica de Sonido Pop
         parentDoc.addEventListener('click', function(e) {
-            if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+            if (e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.closest('[data-testid="stToggle"]')) {
                 var audio = parentDoc.getElementById('popAudio');
                 if (audio) {
                     audio.currentTime = 0;
-                    audio.play().catch(err => console.log("Audio autoplay blocked by browser"));
+                    audio.play().catch(err => console.log("Audio autoplay blocked"));
                 }
             }
         });
 
-        // 2. Lógica de Cambio de Tema (Light / Dark)
+        // Lógica de Cambio de Tema
         const btn = parentDoc.createElement('button');
         btn.className = 'theme-toggle-btn';
         btn.innerHTML = '🌓';
@@ -324,9 +355,7 @@ components.html("""
         const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
         let isDark = window.parent.localStorage.getItem('ps-theme') ? window.parent.localStorage.getItem('ps-theme') === 'dark' : prefersDark;
 
-        const applyTheme = () => {
-            doc.setAttribute('data-theme', isDark ? 'dark' : 'light');
-        };
+        const applyTheme = () => { doc.setAttribute('data-theme', isDark ? 'dark' : 'light'); };
         applyTheme();
 
         btn.onclick = () => {
@@ -335,7 +364,18 @@ components.html("""
             applyTheme();
         };
 
-        // 3. EFECTOS DINÁMICOS: ONDAS PS3 + PARTÍCULAS PS VITA
+        // RASTREO DEL MOUSE PARA INTERACCIÓN
+        let mouse = { x: -1000, y: -1000, radius: 120 };
+        parentDoc.addEventListener('mousemove', function(e) {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+        parentDoc.addEventListener('mouseleave', function() {
+            mouse.x = -1000;
+            mouse.y = -1000;
+        });
+
+        // EFECTOS DINÁMICOS
         const canvas = parentDoc.createElement('canvas');
         canvas.id = 'ps-bg-canvas';
         Object.assign(canvas.style, {
@@ -353,7 +393,6 @@ components.html("""
         parentDoc.defaultView.addEventListener('resize', resize);
         resize();
 
-        // Crear array de partículas Vita
         const particles = Array.from({length: 40}, () => ({
             x: Math.random() * width,
             y: Math.random() * height,
@@ -368,17 +407,14 @@ components.html("""
             ctx.clearRect(0, 0, width, height);
             const isDarkTheme = doc.getAttribute('data-theme') === 'dark';
             
-            // Colores basados en el tema
             const waveColor = isDarkTheme ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 112, 204, 0.15)';
             const particleColor = isDarkTheme ? '255, 255, 255' : '0, 112, 204';
 
-            // Dibujar ondas PS3 (Sine waves matemáticos entrelazados)
             ctx.lineWidth = 1.5;
             for(let i = 0; i < 4; i++) {
                 ctx.beginPath();
                 ctx.strokeStyle = waveColor;
                 for(let x = 0; x < width; x += 20) {
-                    // Combinación de senos para lograr la onda orgánica del XMB
                     let y = height * 0.5 + 
                             Math.sin(x * 0.003 + time + i) * 80 + 
                             Math.sin(x * 0.001 + time * 0.5) * 50;
@@ -388,12 +424,24 @@ components.html("""
                 ctx.stroke();
             }
 
-            // Dibujar Partículas PS Vita (Burbujas flotantes suaves)
             particles.forEach(p => {
+                let dx = p.x - mouse.x;
+                let dy = p.y - mouse.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < mouse.radius) {
+                    let forceDirectionX = dx / distance;
+                    let forceDirectionY = dy / distance;
+                    let force = (mouse.radius - distance) / mouse.radius;
+                    let pushX = forceDirectionX * force * 1.5;
+                    let pushY = forceDirectionY * force * 1.5;
+                    p.x += pushX;
+                    p.y += pushY;
+                }
+
                 p.x += p.vx;
                 p.y += p.vy;
 
-                // Rebotar orgánicamente en los bordes
                 if (p.x < 0 || p.x > width) p.vx *= -1;
                 if (p.y < 0 || p.y > height) p.vy *= -1;
 
@@ -403,7 +451,7 @@ components.html("""
                 ctx.shadowBlur = 10;
                 ctx.shadowColor = `rgba(${particleColor}, 0.5)`;
                 ctx.fill();
-                ctx.shadowBlur = 0; // Reset para las ondas
+                ctx.shadowBlur = 0; 
             });
 
             time += 0.005;
@@ -576,11 +624,13 @@ if "disabled_skus" not in st.session_state: st.session_state.disabled_skus = {}
 
 nc_state = load_nc_state()
 
-# SIDEBAR
+# 4. TOGGLE FLOTANTE VISTA COMPACTA (FUERA DEL SIDEBAR)
+view_compact = st.toggle("Vista Compacta", value=False)
+
+# SIDEBAR (Simplificado, solo acciones y filtros)
 with st.sidebar:
     st.markdown("<div style='color: var(--text-heading); font-size: 1.5rem; font-weight: 700; font-family: Segoe UI;'>⚙️ Panel de Control</div>", unsafe_allow_html=True)
     st.write("")
-    view_compact = st.toggle("Vista Compacta", value=False)
     
     conn = sqlite3.connect(DB_PATH)
     o_count = conn.execute("SELECT COUNT(*) FROM ordenes").fetchone()[0]
@@ -618,8 +668,8 @@ if "current_page" not in st.session_state: st.session_state.current_page = 1
 pages = max(1, (len(df_to_show) + PAGE_SIZE - 1) // PAGE_SIZE)
 df_page = df_to_show.iloc[(st.session_state.current_page-1)*PAGE_SIZE : st.session_state.current_page*PAGE_SIZE]
 
-# RENDER DE CARDS (Se renderiza una u otra según el estado del Toggle)
-for _, r in df_page.iterrows():
+# RENDER DE CARDS (Inyectando el animation-delay para el efecto cascada)
+for i, (_, r) in enumerate(df_page.iterrows()):
     order, f_creacion, skus_raw = r["order_id"], r["fecha_creacion"], r["skus"]
     es_nc = nc_state.get(order, False)
     if filtro == "Solo NC" and not es_nc: continue
@@ -634,9 +684,13 @@ for _, r in df_page.iterrows():
     badge_class = "badge-nc" if es_nc else ("badge-success" if factura else "badge-pending")
     badge_text = "Nota de Crédito" if es_nc else ("Sincronizado" if factura else "Pendiente")
 
+    # Retraso progresivo para la cascada (0.08s por tarjeta)
+    delay = i * 0.08
+
     if view_compact:
+        # 5. RENDER VISTA COMPACTA (CON ANIMACIÓN SLIDEUP)
         st.markdown(f"""
-            <div class="order-card-compact">
+            <div class="order-card-compact" style="animation-delay: {delay}s;">
                 <div style="display:flex; align-items:center; gap:15px; flex:1;">
                     <span class="badge {badge_class}" style="min-width:90px; text-align:center;">{badge_text}</span>
                     <b style="color:var(--text-heading); font-size:14px;">#{order}</b>
@@ -646,11 +700,12 @@ for _, r in df_page.iterrows():
             </div>
         """, unsafe_allow_html=True)
     else:
+        # 5. RENDER VISTA NORMAL (CON ANIMACIÓN SLIDEIN)
         qr_img = get_qr_base64(str(factura or "PENDIENTE"))
         tags_html = "".join([f'<span class="sku-tag {"sku-tag-disabled" if s in st.session_state.disabled_skus[order] else ""}">{s}</span>' for s in all_skus])
         
         st.markdown(f"""
-            <div class="order-card">
+            <div class="order-card" style="animation-delay: {delay}s;">
                 <div style="display:flex; justify-content:space-between; align-items:start;">
                     <div style="flex:1;">
                         <span class="badge {badge_class}">{badge_text}</span>
@@ -666,7 +721,8 @@ for _, r in df_page.iterrows():
             </div>
         """, unsafe_allow_html=True)
 
-    if not factura and not es_nc:
+    # Controles de acción (solo visibles en vista normal para no saturar)
+    if not view_compact and not factura and not es_nc:
         c1, c2, c3 = st.columns([1, 1, 1.5])
         with c1:
             with st.popover("⚙️ Stock", use_container_width=True):
