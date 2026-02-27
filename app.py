@@ -651,7 +651,7 @@ with st.sidebar:
     if st.button("🔄 Sincronizar Excel", use_container_width=True):
         sync_data(); st.cache_data.clear(); st.rerun()
     st.divider()
-    filtro = st.radio("Filtro de vista:", ["Todas", "Solo NC"], label_visibility="collapsed")
+    
     
     if st.button("🚪 Cerrar Sesión", use_container_width=True):
         st.session_state.authenticated = False
@@ -672,7 +672,7 @@ df_page = df_to_show.iloc[(st.session_state.current_page-1)*PAGE_SIZE : st.sessi
 for i, (_, r) in enumerate(df_page.iterrows()):
     order, f_creacion, skus_raw = r["order_id"], r["fecha_creacion"], r["skus"]
     es_nc = nc_state.get(order, False)
-    if filtro == "Solo NC" and not es_nc: continue
+    
 
     all_skus = [s.strip() for s in skus_raw.split(',') if s.strip() != ""]
     if order not in st.session_state.disabled_skus: st.session_state.disabled_skus[order] = []
