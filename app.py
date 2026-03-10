@@ -8,6 +8,7 @@ from io import BytesIO
 import os
 import json
 from datetime import datetime
+import plotly.express as px
 
 # ================== CONFIGURACIÓN Y CONSTANTES ==================
 st.set_page_config(
@@ -23,8 +24,12 @@ BUBBLE_POP = "https://www.soundjay.com/buttons_c2026/sounds/beep-23.mp3"
 # --- LÓGICA DE SESIÓN ---
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
+if "user_role" not in st.session_state:
+    st.session_state.user_role = "user"
+if "username" not in st.session_state:
+    st.session_state.username = ""
 
-# --- CSS PLAYSTATION XMB THEME (PS3/PS4/PSVITA/PS5) + DARK/LIGHT MODE + DEGRADADO ANIMADO ---
+# --- CSS 
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=SST:wght@400;600;700&family=Segoe+UI:wght@400;600;700&display=swap');
@@ -155,6 +160,12 @@ st.markdown(f"""
         background: var(--card-bg-hover);
     }}
 
+    /* CLASE ALERTA CRÍTICA AÑADIDA */
+    .card-critical {{
+        border: 2px solid #ff4b4b !important;
+        box-shadow: 0 0 15px rgba(255, 75, 75, 0.3), inset 0 0 10px rgba(255, 75, 75, 0.1) !important;
+    }}
+
     /* --- LOGIN PORTAL HORIZONTAL --- */
     [data-testid="stHorizontalBlock"] > div:has(.login-box-container) {{
         background: var(--card-bg);
@@ -234,7 +245,6 @@ st.markdown(f"""
         border: 1px solid rgba(255,255,255,0.2);
         color: white;
     }}
-    .badge-nc {{ background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%); }}
     .badge-pending {{ background: linear-gradient(135deg, #d69e2e 0%, #b7791f 100%); }}
     .badge-success {{ background: linear-gradient(135deg, #3182ce 0%, #2b6cb0 100%); }}
 
@@ -466,31 +476,55 @@ components.html("""
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SOURCE_DIR = os.path.join(BASE_DIR, "source")
 DB_PATH = os.path.join(BASE_DIR, "data.db")
-NC_FILE = os.path.join(BASE_DIR, "estado_nc.json")
+CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
+LOG_FILE = os.path.join(BASE_DIR, "activity_log.json")
 FILE_ORDENES = os.path.join(SOURCE_DIR, "ordenes.xlsx")
 FILE_FACTURAS = os.path.join(SOURCE_DIR, "facturas.xlsx")
 
-SKU_ENVIO = "5966673"
+# Crear carpeta source si no existe
+if not os.path.exists(SOURCE_DIR):
+    os.makedirs(SOURCE_DIR)
+
 PAGE_SIZE = 10 
-DIAS_VENTANA_ESTANDAR = 12 
+
+# Funciones de Configuración y Logs
+def load_config():
+    if os.path.exists(CONFIG_FILE):
+        return json.load(open(CONFIG_FILE))
+    return {"ventana": 12, "sku_envio": "5966673", "alert_days": 15, "exclusiones": []}
+
+def save_config(conf):
+    json.dump(conf, open(CONFIG_FILE, 'w'))
+
+def add_log(user, action):
+    logs = json.load(open(LOG_FILE)) if os.path.exists(LOG_FILE) else []
+    logs.append({"ts": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "user": user, "action": action})
+    json.dump(logs[-100:], open(LOG_FILE, 'w'))
 
 def init_users_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("CREATE TABLE IF NOT EXISTS usuarios (user TEXT PRIMARY KEY, password TEXT)")
+    c.execute("CREATE TABLE IF NOT EXISTS usuarios (user TEXT PRIMARY KEY, password TEXT, role TEXT)")
+    
+    try:
+        c.execute("SELECT role FROM usuarios LIMIT 1")
+    except sqlite3.OperationalError:
+        c.execute("ALTER TABLE usuarios ADD COLUMN role TEXT DEFAULT 'user'")
+        c.execute("UPDATE usuarios SET role='admin' WHERE user='admin'")
+        
     c.execute("SELECT COUNT(*) FROM usuarios")
     if c.fetchone()[0] == 0:
-        c.execute("INSERT INTO usuarios VALUES (?, ?)", ("admin", "1234"))
+        c.execute("INSERT INTO usuarios VALUES (?, ?, ?)", ("admin", "1234", "admin"))
     conn.commit()
     conn.close()
 
 def check_login(user, password):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("SELECT * FROM usuarios WHERE user = ? AND password = ?", (user, password))
+    c.execute("SELECT role FROM usuarios WHERE user = ? AND password = ?", (user, password))
     result = c.fetchone()
     conn.close()
-    return result is not None
+    return result[0] if result else None
 
 def clean_sku(sku):
     if pd.isna(sku): return ""
@@ -510,34 +544,65 @@ def init_db():
     conn.commit()
     conn.close()
 
-def sync_data():
-    with st.spinner("🚀 Sincronizando datos..."):
+def sync_data(file_o_buffer=None, file_f_buffer=None):
+    with st.spinner("🚀 Añadiendo datos a la base principal..."):
         try:
-            df_o = pd.read_excel(FILE_ORDENES, dtype={'SKU': str})
-            df_f = pd.read_excel(FILE_FACTURAS, dtype={'f_item_code': str})
-            
             conn = sqlite3.connect(DB_PATH)
             c = conn.cursor()
-            c.execute("DELETE FROM ordenes"); c.execute("DELETE FROM ordenes_sku"); c.execute("DELETE FROM facturas")
-            for _, r in df_o.iterrows():
-                oid = str(r["N de orden"]).strip()
-                sku = clean_sku(r["SKU"])
-                f = pd.to_datetime(r["Fecha de creación"], dayfirst=True, errors="coerce")
-                f_s = f.strftime("%Y-%m-%d") if pd.notna(f) else None
-                c.execute("INSERT OR IGNORE INTO ordenes VALUES (?,?)", (oid, f_s))
-                c.execute("INSERT OR IGNORE INTO ordenes_sku VALUES (?,?)", (oid, sku))
-            for _, r in df_f.iterrows():
-                rec = str(r["v_receipt_number"]).strip()
-                sku = clean_sku(r["f_item_code"])
-                if rec.startswith("D"): continue
-                f = pd.to_datetime(r["b_transaction_date"], dayfirst=True, errors="coerce")
-                f_s = f.strftime("%Y-%m-%d") if pd.notna(f) else None
-                c.execute("INSERT INTO facturas VALUES (?,?,?)", (rec, sku, f_s))
+            
+            # --- 1. AÑADIR ÓRDENES ---
+            path_o = None
+            if file_o_buffer:
+                path_o = FILE_ORDENES
+                with open(path_o, "wb") as f: f.write(file_o_buffer.getbuffer())
+            elif os.path.exists(FILE_ORDENES) and not file_f_buffer: 
+                path_o = FILE_ORDENES
+                
+            if path_o:
+                df_o_dict = pd.read_excel(path_o, dtype={'SKU': str}, sheet_name=None)
+                df_o = pd.concat(df_o_dict.values(), ignore_index=True)
+                df_o.columns = df_o.columns.str.strip()
+                for _, r in df_o.iterrows():
+                    if pd.isna(r.get("#Order")): continue
+                    oid = str(r["#Order"]).strip()
+                    sku = clean_sku(r["SKU"])
+                    f = pd.to_datetime(r["Created at"], dayfirst=True, errors="coerce")
+                    f_s = f.strftime("%Y-%m-%d") if pd.notna(f) else None
+                    # INSERT OR IGNORE previene que se dupliquen las filas existentes
+                    c.execute("INSERT OR IGNORE INTO ordenes VALUES (?,?)", (oid, f_s))
+                    c.execute("INSERT OR IGNORE INTO ordenes_sku VALUES (?,?)", (oid, sku))
+
+            # --- 2. AÑADIR FACTURAS ---
+            path_f = None
+            if file_f_buffer:
+                path_f = FILE_FACTURAS
+                with open(path_f, "wb") as f: f.write(file_f_buffer.getbuffer())
+            elif os.path.exists(FILE_FACTURAS) and not file_o_buffer:
+                path_f = FILE_FACTURAS
+                
+            if path_f:
+                df_f_dict = pd.read_excel(path_f, dtype={'f_item_code': str}, sheet_name=None)
+                df_f = pd.concat(df_f_dict.values(), ignore_index=True)
+                df_f.columns = df_f.columns.str.strip()
+                for _, r in df_f.iterrows():
+                    if pd.isna(r.get("v_receipt_number")): continue
+                    rec = str(r["v_receipt_number"]).strip()
+                    sku = clean_sku(r["f_item_code"])
+                    if rec.startswith("D"): continue
+                    f = pd.to_datetime(r["b_transaction_date"], dayfirst=True, errors="coerce")
+                    f_s = f.strftime("%Y-%m-%d") if pd.notna(f) else None
+                    
+                    # Verificamos que esta línea de factura exacta no exista antes de insertarla
+                    c.execute("SELECT 1 FROM facturas WHERE receipt_number=? AND sku=?", (rec, sku))
+                    if not c.fetchone():
+                        c.execute("INSERT INTO facturas VALUES (?,?,?)", (rec, sku, f_s))
+                        
             conn.commit()
             conn.close()
-            st.sidebar.success("✅ Sincronizado")
+            return True
         except Exception as e:
-            st.sidebar.error(f"Error: {e}")
+            st.error(f"Error: {e}")
+            return False
 
 @st.cache_data(show_spinner=False)
 def load_base_df():
@@ -547,23 +612,28 @@ def load_base_df():
     return df
 
 def find_matching_factura(sku_list, fecha_orden, dias_extra=0):
+    conf = load_config()
     if not fecha_orden or fecha_orden == "—" or not sku_list: return None
-    ventana = DIAS_VENTANA_ESTANDAR + dias_extra
+    
+    sku_list_clean = [s for s in sku_list if s not in conf['exclusiones'] and s != conf['sku_envio']]
+    if not sku_list_clean: return None
+
+    ventana = conf['ventana'] + dias_extra
     conn = sqlite3.connect(DB_PATH)
-    placeholders = ",".join("?" * len(sku_list))
+    placeholders = ",".join("?" * len(sku_list_clean))
     query = f"""
         SELECT receipt_number FROM facturas 
         WHERE fecha >= date(?, '-2 days') AND fecha <= date(?, '+{ventana} days') 
         AND sku IN ({placeholders})
         GROUP BY receipt_number 
-        HAVING COUNT(DISTINCT CASE WHEN sku != '{SKU_ENVIO}' THEN sku END) = ? 
+        HAVING COUNT(DISTINCT CASE WHEN sku != '{conf['sku_envio']}' THEN sku END) = ? 
            AND (SELECT COUNT(DISTINCT sku) FROM facturas f2 
                 WHERE f2.receipt_number = facturas.receipt_number 
-                AND f2.sku != '{SKU_ENVIO}') = ?
+                AND f2.sku != '{conf['sku_envio']}') = ?
         ORDER BY ABS(julianday(fecha) - julianday(?)) ASC
         LIMIT 1
     """
-    params = [fecha_orden, fecha_orden] + sku_list + [len(sku_list), len(sku_list), fecha_orden]
+    params = [fecha_orden, fecha_orden] + sku_list_clean + [len(sku_list_clean), len(sku_list_clean), fecha_orden]
     row = conn.execute(query, params).fetchone()
     conn.close()
     return row[0] if row else None
@@ -578,9 +648,6 @@ def get_local_img_base64(path):
     with open(path, "rb") as f:
         data = f.read()
     return base64.b64encode(data).decode()
-
-def load_nc_state():
-    return json.load(open(NC_FILE)) if os.path.exists(NC_FILE) else {}
 
 # ================== CONTROL DE ACCESO (LOGIN) ==================
 init_users_db()
@@ -610,8 +677,12 @@ if not st.session_state.authenticated:
             submit_button = st.form_submit_button("Iniciar Sesión", use_container_width=True)
             
             if submit_button:
-                if check_login(user_login, pass_login):
+                role = check_login(user_login, pass_login)
+                if role:
                     st.session_state.authenticated = True
+                    st.session_state.user_role = role
+                    st.session_state.username = user_login
+                    add_log(user_login, "Inicio de Sesión")
                     st.rerun()
                 else:
                     st.error("Credenciales Incorrectas")
@@ -622,136 +693,292 @@ init_db()
 if "extra_days" not in st.session_state: st.session_state.extra_days = {}
 if "disabled_skus" not in st.session_state: st.session_state.disabled_skus = {}
 
-nc_state = load_nc_state()
+sys_config = load_config()
 
 # 4. TOGGLE FLOTANTE VISTA COMPACTA (FUERA DEL SIDEBAR)
 view_compact = st.toggle("Vista Compacta", value=False)
 
-# SIDEBAR (Simplificado, solo acciones y filtros)
+# SIDEBAR LÓGICA DE MENÚ
 with st.sidebar:
-    st.markdown("<div style='color: var(--text-heading); font-size: 1.5rem; font-weight: 700; font-family: Segoe UI;'>⚙️ Panel de Control</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='color: var(--text-heading); font-size: 1.5rem; font-weight: 700; font-family: Segoe UI;'>⚙️ Panel {st.session_state.username.capitalize()}</div>", unsafe_allow_html=True)
     st.write("")
     
-    conn = sqlite3.connect(DB_PATH)
-    o_count = conn.execute("SELECT COUNT(*) FROM ordenes").fetchone()[0]
-    f_count = conn.execute("SELECT COUNT(DISTINCT receipt_number) FROM facturas").fetchone()[0]
-    conn.close()
+    # Menú extendido si es admin
+    opciones_menu = ["🔍 Rastreador"]
+    if st.session_state.user_role == "admin":
+        opciones_menu.extend(["📊 Dashboard", "📁 Carga y Config.", "👥 Usuarios"])
     
-    stats_html = f"""
-        <div style='background: var(--card-bg); padding: 20px; border-radius: 16px; border: 1px solid var(--card-border); position: relative; overflow: hidden; margin-bottom: 20px;'>
-            <p style='margin:0; font-size:12px; font-weight:700; color:var(--text-main); letter-spacing: 1px;'>ÓRDENES</p>
-            <h2 style='margin:0; color:var(--text-heading); border:none;'>{o_count}</h2>
-            <hr style='margin:10px 0; border:0; border-top:1px solid var(--card-border);'>
-            <p style='margin:0; font-size:11px; font-weight:700; color:var(--text-main); letter-spacing: 1px;'>FACTURAS</p>
-            <h2 style='margin:0; color:var(--text-heading); border:none;'>{f_count}</h2>
-        </div>
-    """
-    st.markdown(stats_html, unsafe_allow_html=True)
-    
-    if st.button("🔄 Sincronizar Excel", use_container_width=True):
-        sync_data(); st.cache_data.clear(); st.rerun()
+    menu_activo = st.radio("Navegación", opciones_menu, label_visibility="collapsed")
     st.divider()
-    
-    
+
+    if menu_activo == "🔍 Rastreador":
+        conn = sqlite3.connect(DB_PATH)
+        o_count = conn.execute("SELECT COUNT(*) FROM ordenes").fetchone()[0]
+        f_count = conn.execute("SELECT COUNT(DISTINCT receipt_number) FROM facturas").fetchone()[0]
+        conn.close()
+        
+        stats_html = f"""
+            <div style='background: var(--card-bg); padding: 20px; border-radius: 16px; border: 1px solid var(--card-border); position: relative; overflow: hidden; margin-bottom: 20px;'>
+                <p style='margin:0; font-size:12px; font-weight:700; color:var(--text-main); letter-spacing: 1px;'>ÓRDENES</p>
+                <h2 style='margin:0; color:var(--text-heading); border:none;'>{o_count}</h2>
+                <hr style='margin:10px 0; border:0; border-top:1px solid var(--card-border);'>
+                <p style='margin:0; font-size:11px; font-weight:700; color:var(--text-main); letter-spacing: 1px;'>FACTURAS</p>
+                <h2 style='margin:0; color:var(--text-heading); border:none;'>{f_count}</h2>
+            </div>
+        """
+        st.markdown(stats_html, unsafe_allow_html=True)
+        
+        if st.button("🔄 Refrescar Cache", use_container_width=True):
+            st.cache_data.clear(); st.rerun()
+
     if st.button("🚪 Cerrar Sesión", use_container_width=True):
         st.session_state.authenticated = False
         st.rerun()
 
-# Header Principal
-st.markdown("<div style='text-align: center; color: var(--text-heading); font-size: 2.5rem; font-weight: 800; letter-spacing: 2px; margin-bottom: 20px;'>RECEIPT TRACKER</div>", unsafe_allow_html=True)
-search = st.text_input("", placeholder="🔍 Buscar ID de orden...", label_visibility="collapsed")
+# ================== MÓDULOS DE ADMINISTRADOR ==================
 
-full_df = load_base_df()
-df_to_show = full_df[full_df["order_id"].str.contains(search.strip(), case=False)] if search else full_df.copy()
-
-if "current_page" not in st.session_state: st.session_state.current_page = 1
-pages = max(1, (len(df_to_show) + PAGE_SIZE - 1) // PAGE_SIZE)
-df_page = df_to_show.iloc[(st.session_state.current_page-1)*PAGE_SIZE : st.session_state.current_page*PAGE_SIZE]
-
-# RENDER DE CARDS (Inyectando el animation-delay para el efecto cascada)
-for i, (_, r) in enumerate(df_page.iterrows()):
-    order, f_creacion, skus_raw = r["order_id"], r["fecha_creacion"], r["skus"]
-    es_nc = nc_state.get(order, False)
+if menu_activo == "📊 Dashboard":
+    st.markdown("<div style='color: var(--text-heading); font-size: 2rem; font-weight: 800; letter-spacing: 2px; margin-bottom: 20px;'>MÉTRICAS DEL SISTEMA</div>", unsafe_allow_html=True)
     
-
-    all_skus = [s.strip() for s in skus_raw.split(',') if s.strip() != ""]
-    if order not in st.session_state.disabled_skus: st.session_state.disabled_skus[order] = []
-    active_skus = [s for s in all_skus if s not in st.session_state.disabled_skus[order] and s != SKU_ENVIO]
+    df_all = load_base_df()
+    conn = sqlite3.connect(DB_PATH)
+    total_f = conn.execute("SELECT COUNT(DISTINCT receipt_number) FROM facturas").fetchone()[0]
+    conn.close()
     
-    bonus = st.session_state.extra_days.get(order, 0)
-    factura = None if es_nc else find_matching_factura(active_skus, f_creacion, bonus)
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Total Órdenes", len(df_all))
+    c2.metric("Total Facturas", total_f)
+    if len(df_all) > 0:
+        c3.metric("Tasa Bruta", f"{round((total_f/len(df_all))*100, 1)}%")
+
+    st.markdown("### Volumen de Órdenes (Últimos días)")
+    df_all['fecha_creacion'] = pd.to_datetime(df_all['fecha_creacion'], errors='coerce')
+    df_trend = df_all.groupby('fecha_creacion').size().reset_index(name='Cantidad').tail(15)
     
-    badge_class = "badge-nc" if es_nc else ("badge-success" if factura else "badge-pending")
-    badge_text = "Nota de Crédito" if es_nc else ("Sincronizado" if factura else "Pendiente")
+    fig = px.line(df_trend, x='fecha_creacion', y='Cantidad', markers=True, template="plotly_dark")
+    fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="white")
+    st.plotly_chart(fig, use_container_width=True)
 
-    # Retraso progresivo para la cascada (0.08s por tarjeta)
-    delay = i * 0.08
+    st.markdown("### 📝 Auditoría de Actividad")
+    if os.path.exists(LOG_FILE):
+        logs_df = pd.DataFrame(json.load(open(LOG_FILE)))
+        st.dataframe(logs_df.tail(15).iloc[::-1], use_container_width=True, hide_index=True)
 
-    if view_compact:
-        # 5. RENDER VISTA COMPACTA (CON ANIMACIÓN SLIDEUP)
-        st.markdown(f"""
-            <div class="order-card-compact" style="animation-delay: {delay}s;">
-                <div style="display:flex; align-items:center; gap:15px; flex:1;">
-                    <span class="badge {badge_class}" style="min-width:90px; text-align:center;">{badge_text}</span>
-                    <b style="color:var(--text-heading); font-size:14px;">#{order}</b>
-                    <span style="font-size:12px; color:var(--text-main);">{f_creacion or "—"}</span>
-                </div>
-                <div class="receipt-id" style="font-size:11px; padding:4px 10px;">🧾 {factura or "Sin Factura"}</div>
-            </div>
-        """, unsafe_allow_html=True)
-    else:
-        # 5. RENDER VISTA NORMAL (CON ANIMACIÓN SLIDEIN)
-        qr_img = get_qr_base64(str(factura or "PENDIENTE"))
-        tags_html = "".join([f'<span class="sku-tag {"sku-tag-disabled" if s in st.session_state.disabled_skus[order] else ""}">{s}</span>' for s in all_skus])
+elif menu_activo == "📁 Carga y Config.":
+    st.markdown("<div style='color: var(--text-heading); font-size: 2rem; font-weight: 800; letter-spacing: 2px; margin-bottom: 20px;'>REGLAS Y DATOS</div>", unsafe_allow_html=True)
+    
+    with st.expander("⚙️ Editor de Reglas de Negocio", expanded=True):
+        col1, col2 = st.columns(2)
+        with col1:
+            nueva_ventana = st.slider("Ventana Global (Días)", min_value=1, max_value=40, value=sys_config['ventana'])
+            nuevo_sku = st.text_input("SKU de Envío Principal", value=sys_config['sku_envio'])
+        with col2:
+            nueva_alerta = st.number_input("Días para Alerta Crítica (Rojo)", min_value=1, value=sys_config['alert_days'])
+            excl_str = st.text_area("SKUs Excluidos (separados por coma)", value=",".join(sys_config['exclusiones']))
         
-        st.markdown(f"""
-            <div class="order-card" style="animation-delay: {delay}s;">
-                <div style="display:flex; justify-content:space-between; align-items:start;">
-                    <div style="flex:1;">
-                        <span class="badge {badge_class}">{badge_text}</span>
-                        <div style="margin:8px 0 0 0; color:var(--text-heading); font-size: 1.5rem; font-weight: 700; letter-spacing: 1px;">Orden #{order}</div>
-                        <p style="margin:2px 0; font-size:12px; color:var(--text-main);">📅 {f_creacion or "—"} · ⏱️ Ventana: {DIAS_VENTANA_ESTANDAR + bonus}d</p>
-                        <div style="margin: 15px 0;"><div class="receipt-id">🧾 {factura if factura else ("CANCELADO (NC)" if es_nc else "BUSCANDO...")}</div></div>
-                        <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:6px;">{tags_html}</div>
-                    </div>
-                    <div class="qr-glass-container">
-                        <img src="data:image/png;base64,{qr_img}" width="80" style="border-radius:10px;">
-                    </div>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+        if st.button("💾 Guardar Configuración", use_container_width=True):
+            sys_config['ventana'] = nueva_ventana
+            sys_config['sku_envio'] = nuevo_sku
+            sys_config['alert_days'] = nueva_alerta
+            sys_config['exclusiones'] = [x.strip() for x in excl_str.split(",") if x.strip()]
+            save_config(sys_config)
+            add_log(st.session_state.username, "Modificó Reglas de Negocio")
+            st.success("Configuración actualizada correctamente.")
+            st.cache_data.clear()
 
-    # Controles de acción (solo visibles en vista normal para no saturar)
-    if not view_compact and not factura and not es_nc:
-        c1, c2, c3 = st.columns([1, 1, 1.5])
-        with c1:
-            with st.popover("⚙️ Stock", use_container_width=True):
-                for s in [sku for sku in all_skus if sku != SKU_ENVIO]:
-                    is_disabled = s in st.session_state.disabled_skus[order]
-                    if st.checkbox(f"SKU {s}", value=not is_disabled, key=f"stock_{order}_{s}") == is_disabled:
-                        if is_disabled: st.session_state.disabled_skus[order].remove(s)
-                        else: st.session_state.disabled_skus[order].append(s)
-                        st.rerun()
-        with c2:
-            if st.button(f"🔍 +5 Días", key=f"btn_{order}", use_container_width=True):
-                st.session_state.extra_days[order] = bonus + 5; st.rerun()
-        with c3:
-            with st.expander("🛠️ Diag"):
+    st.markdown("### 📤 Carga Masiva de Archivos Excel")
+    col_u1, col_u2 = st.columns(2)
+    with col_u1: file_ord = st.file_uploader("1. Subir ordenes.xlsx", type=["xlsx"])
+    with col_u2: file_fac = st.file_uploader("2. Subir facturas.xlsx", type=["xlsx"])
+    
+    if st.button("🚀 Añadir a Base de Datos", use_container_width=True):
+        if sync_data(file_ord, file_fac):
+            st.cache_data.clear()
+            add_log(st.session_state.username, "Ejecutó Carga de Nuevos Archivos")
+            st.success("¡Datos añadidos correctamente sin borrar los anteriores!")
+
+elif menu_activo == "👥 Usuarios":
+    st.markdown("<div style='color: var(--text-heading); font-size: 2rem; font-weight: 800; letter-spacing: 2px; margin-bottom: 20px;'>GESTIÓN DE ACCESOS</div>", unsafe_allow_html=True)
+    
+    with st.form("crear_usuario", clear_on_submit=True):
+        st.subheader("➕ Añadir Nuevo Usuario")
+        c1, c2, c3 = st.columns(3)
+        with c1: nu_user = st.text_input("Usuario")
+        with c2: nu_pass = st.text_input("Contraseña", type="password")
+        with c3: nu_rol = st.selectbox("Rol", ["user", "admin"])
+        
+        if st.form_submit_button("Crear Usuario", use_container_width=True):
+            if nu_user and nu_pass:
                 conn = sqlite3.connect(DB_PATH)
-                if active_skus:
-                    ps = ",".join(['?'] * len(active_skus))
-                    df_diag = pd.read_sql(f"SELECT receipt_number, fecha, sku FROM facturas WHERE sku IN ({ps}) ORDER BY fecha DESC LIMIT 3", conn, params=active_skus)
-                    st.dataframe(df_diag, hide_index=True)
+                try:
+                    conn.execute("INSERT INTO usuarios VALUES (?, ?, ?)", (nu_user, nu_pass, nu_rol))
+                    conn.commit()
+                    add_log(st.session_state.username, f"Creó usuario: {nu_user}")
+                    st.success(f"Usuario {nu_user} creado.")
+                except sqlite3.IntegrityError:
+                    st.error("El usuario ya existe.")
                 conn.close()
 
-# PAGINACIÓN
-st.markdown("<br>", unsafe_allow_html=True)
-p1, p2, p3 = st.columns([1, 2, 1])
-with p1:
-    if st.button("⬅️ Anterior", use_container_width=True) and st.session_state.current_page > 1:
-        st.session_state.current_page -= 1; st.rerun()
-with p2:
-    st.markdown(f"<p style='text-align:center; color:var(--text-heading); font-weight:700; font-size:14px; letter-spacing: 2px;'>{st.session_state.current_page} / {pages}</p>", unsafe_allow_html=True)
-with p3:
-    if st.button("Siguiente ➡️", use_container_width=True) and st.session_state.current_page < pages:
-        st.session_state.current_page += 1; st.rerun()
+    st.subheader("Usuarios Actuales")
+    conn = sqlite3.connect(DB_PATH)
+    df_users = pd.read_sql("SELECT user, role FROM usuarios", conn)
+    conn.close()
+    st.dataframe(df_users, use_container_width=True, hide_index=True)
+
+
+# ================== MÓDULO RASTREADOR (VISTA ORIGINAL) ==================
+elif menu_activo == "🔍 Rastreador":
+    
+    st.markdown("<div style='text-align: center; color: var(--text-heading); font-size: 2.5rem; font-weight: 800; letter-spacing: 2px; margin-bottom: 20px;'>RECEIPT TRACKER</div>", unsafe_allow_html=True)
+    
+    col_busq, col_exp = st.columns([4, 1.5])
+    with col_busq:
+        search = st.text_input("", placeholder="🔍 Buscar ID de orden...", label_visibility="collapsed")
+
+    full_df = load_base_df()
+    df_to_show = full_df[full_df["order_id"].str.contains(search.strip(), case=False)] if search else full_df.copy()
+
+    with col_exp:
+        # Sistema de exportación con datos de factura cruzados
+        if st.button("📥 Generar Excel", use_container_width=True):
+            with st.spinner("Calculando estado de facturas..."):
+                export_data = []
+                conn = sqlite3.connect(DB_PATH)
+                for _, r in df_to_show.iterrows():
+                    order = r["order_id"]
+                    f_creacion = r["fecha_creacion"]
+                    skus_raw = r["skus"]
+                    
+                    all_skus = [s.strip() for s in skus_raw.split(',') if s.strip() != ""]
+                    disabled = st.session_state.disabled_skus.get(order, [])
+                    active_skus = [s for s in all_skus if s not in disabled and s != sys_config['sku_envio']]
+                    
+                    bonus = st.session_state.extra_days.get(order, 0)
+                    factura = find_matching_factura(active_skus, f_creacion, bonus)
+                    
+                    fecha_fac = "-"
+                    if factura:
+                        fecha_res = conn.execute("SELECT fecha FROM facturas WHERE receipt_number=? LIMIT 1", (factura,)).fetchone()
+                        if fecha_res:
+                            fecha_fac = fecha_res[0]
+                            
+                    export_data.append({
+                        "Orden ID": order,
+                        "Fecha Orden": f_creacion,
+                        "SKUs": skus_raw,
+                        "N° Factura": factura if factura else "Pendiente",
+                        "Fecha Factura": fecha_fac
+                    })
+                conn.close()
+                
+                df_export = pd.DataFrame(export_data)
+                xls_data = BytesIO()
+                df_export.to_excel(xls_data, index=False, engine='openpyxl')
+                st.session_state.export_file = xls_data.getvalue()
+
+        # Mostrar el botón de descarga solo cuando el archivo ya está preparado en sesión
+        if "export_file" in st.session_state:
+            st.download_button(label="⬇️ Descargar Reporte", data=st.session_state.export_file, file_name="reporte_tracker.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+
+
+    if "current_page" not in st.session_state: st.session_state.current_page = 1
+    pages = max(1, (len(df_to_show) + PAGE_SIZE - 1) // PAGE_SIZE)
+    df_page = df_to_show.iloc[(st.session_state.current_page-1)*PAGE_SIZE : st.session_state.current_page*PAGE_SIZE]
+
+    # RENDER DE CARDS (Inyectando el animation-delay para el efecto cascada)
+    for i, (_, r) in enumerate(df_page.iterrows()):
+        order, f_creacion, skus_raw = r["order_id"], r["fecha_creacion"], r["skus"]
+        
+        all_skus = [s.strip() for s in skus_raw.split(',') if s.strip() != ""]
+        if order not in st.session_state.disabled_skus: st.session_state.disabled_skus[order] = []
+        active_skus = [s for s in all_skus if s not in st.session_state.disabled_skus[order] and s != sys_config['sku_envio']]
+        
+        bonus = st.session_state.extra_days.get(order, 0)
+        factura = find_matching_factura(active_skus, f_creacion, bonus)
+        
+        badge_class = "badge-success" if factura else "badge-pending"
+        badge_text = "Sincronizado" if factura else "Pendiente"
+
+        # Lógica Alerta Crítica
+        critical_class = ""
+        if not factura and f_creacion:
+            try:
+                dias_pendientes = (datetime.now() - datetime.strptime(f_creacion, "%Y-%m-%d")).days
+                if dias_pendientes >= sys_config['alert_days']:
+                    critical_class = "card-critical"
+            except: pass
+
+        # Retraso progresivo para la cascada (0.08s por tarjeta)
+        delay = i * 0.08
+
+        if view_compact:
+            # RENDER VISTA COMPACTA
+            st.markdown(f"""
+                <div class="order-card-compact {critical_class}" style="animation-delay: {delay}s;">
+                    <div style="display:flex; align-items:center; gap:15px; flex:1;">
+                        <span class="badge {badge_class}" style="min-width:90px; text-align:center;">{badge_text}</span>
+                        <b style="color:var(--text-heading); font-size:14px;">#{order}</b>
+                        <span style="font-size:12px; color:var(--text-main);">{f_creacion or "—"}</span>
+                    </div>
+                    <div class="receipt-id" style="font-size:11px; padding:4px 10px;">🧾 {factura or "Sin Factura"}</div>
+                </div>
+            """, unsafe_allow_html=True)
+        else:
+            # RENDER VISTA NORMAL
+            qr_img = get_qr_base64(str(factura or "PENDIENTE"))
+            tags_html = "".join([f'<span class="sku-tag {"sku-tag-disabled" if s in st.session_state.disabled_skus[order] else ""}">{s}</span>' for s in all_skus])
+            
+            st.markdown(f"""
+                <div class="order-card {critical_class}" style="animation-delay: {delay}s;">
+                    <div style="display:flex; justify-content:space-between; align-items:start;">
+                        <div style="flex:1;">
+                            <span class="badge {badge_class}">{badge_text}</span>
+                            <div style="margin:8px 0 0 0; color:var(--text-heading); font-size: 1.5rem; font-weight: 700; letter-spacing: 1px;">Orden #{order}</div>
+                            <p style="margin:2px 0; font-size:12px; color:var(--text-main);">📅 {f_creacion or "—"} · ⏱️ Ventana: {sys_config['ventana'] + bonus}d</p>
+                            <div style="margin: 15px 0;"><div class="receipt-id">🧾 {factura if factura else "BUSCANDO..."}</div></div>
+                            <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:6px;">{tags_html}</div>
+                        </div>
+                        <div class="qr-glass-container">
+                            <img src="data:image/png;base64,{qr_img}" width="80" style="border-radius:10px;">
+                        </div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+
+        # Controles de acción (solo visibles en vista normal para no saturar)
+        if not view_compact and not factura:
+            c1, c2, c3 = st.columns([1, 1, 1.5])
+            with c1:
+                with st.popover("⚙️ Stock", use_container_width=True):
+                    for s in [sku for sku in all_skus if sku != sys_config['sku_envio']]:
+                        is_disabled = s in st.session_state.disabled_skus[order]
+                        if st.checkbox(f"SKU {s}", value=not is_disabled, key=f"stock_{order}_{s}") == is_disabled:
+                            if is_disabled: st.session_state.disabled_skus[order].remove(s)
+                            else: st.session_state.disabled_skus[order].append(s)
+                            add_log(st.session_state.username, f"Modificó Stock en {order} (SKU: {s})")
+                            st.rerun()
+            with c2:
+                if st.button(f"🔍 +5 Días", key=f"btn_{order}", use_container_width=True):
+                    st.session_state.extra_days[order] = bonus + 5
+                    add_log(st.session_state.username, f"Extendió búsqueda en {order} (+5d)")
+                    st.rerun()
+            with c3:
+                with st.expander("🛠️ Diag"):
+                    conn = sqlite3.connect(DB_PATH)
+                    if active_skus:
+                        ps = ",".join(['?'] * len(active_skus))
+                        df_diag = pd.read_sql(f"SELECT receipt_number, fecha, sku FROM facturas WHERE sku IN ({ps}) ORDER BY fecha DESC LIMIT 3", conn, params=active_skus)
+                        st.dataframe(df_diag, hide_index=True)
+                    conn.close()
+
+    # PAGINACIÓN
+    st.markdown("<br>", unsafe_allow_html=True)
+    p1, p2, p3 = st.columns([1, 2, 1])
+    with p1:
+        if st.button("⬅️ Anterior", use_container_width=True) and st.session_state.current_page > 1:
+            st.session_state.current_page -= 1; st.rerun()
+    with p2:
+        st.markdown(f"<p style='text-align:center; color:var(--text-heading); font-weight:700; font-size:14px; letter-spacing: 2px;'>{st.session_state.current_page} / {pages}</p>", unsafe_allow_html=True)
+    with p3:
+        if st.button("Siguiente ➡️", use_container_width=True) and st.session_state.current_page < pages:
+            st.session_state.current_page += 1; st.rerun()
