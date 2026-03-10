@@ -29,152 +29,202 @@ if "user_role" not in st.session_state:
 if "username" not in st.session_state:
     st.session_state.username = ""
 
-# --- CSS 
+# --- CSS MEJORADO ---
 st.markdown(f"""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=SST:wght@400;600;700&family=Segoe+UI:wght@400;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=SST:wght@400;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0');
     
     /* DEFINICIÓN DE VARIABLES PARA MODO CLARO Y OSCURO */
     :root, [data-theme="dark"] {{
         --bg-gradient: linear-gradient(-45deg, #080c14, #001f3f, #000000, #0a192f);
         --text-main: #94a3b8;
         --text-heading: #ffffff;
-        --card-bg: rgba(20, 25, 40, 0.4);
-        --card-bg-hover: rgba(30, 45, 75, 0.8);
-        --card-border: rgba(255, 255, 255, 0.15);
-        --border-hover: rgba(255, 255, 255, 0.9);
-        --accent-glow: 0 0 25px rgba(0, 112, 204, 0.7);
-        --btn-bg: linear-gradient(to bottom, #00439c 0%, #002766 100%);
+        --card-bg: rgba(20, 25, 40, 0.45);
+        --card-bg-hover: rgba(30, 45, 75, 0.6);
+        --card-border: rgba(255, 255, 255, 0.1);
+        --border-hover: rgba(56, 189, 248, 0.8);
+        --accent-glow: 0 0 30px rgba(56, 189, 248, 0.3);
+        --btn-bg: linear-gradient(135deg, #00439c 0%, #002766 100%);
         --btn-border: #0070cc;
         --btn-text: #ffffff;
         --receipt-bg: linear-gradient(to bottom, #1e293b 0%, #0f172a 100%);
         --receipt-text: #38bdf8;
-        --input-bg: rgba(255, 255, 255, 0.1);
+        --input-bg: rgba(255, 255, 255, 0.05);
         --input-text: #ffffff;
-        --sidebar-bg: rgba(0, 0, 0, 0.3);
+        --sidebar-bg: rgba(15, 23, 42, 0.7);
     }}
 
     [data-theme="light"] {{
         --bg-gradient: linear-gradient(-45deg, #e6f0fa, #ffffff, #f0f2f5, #dbeafe);
         --text-main: #475569;
         --text-heading: #0f172a;
-        --card-bg: rgba(255, 255, 255, 0.65);
+        --card-bg: rgba(255, 255, 255, 0.7);
         --card-bg-hover: rgba(255, 255, 255, 0.95);
-        --card-border: rgba(0, 0, 0, 0.1);
-        --border-hover: rgba(0, 112, 204, 0.6);
-        --accent-glow: 0 10px 30px rgba(0, 0, 0, 0.15);
-        --btn-bg: linear-gradient(to bottom, #3b82f6 0%, #2563eb 100%);
+        --card-border: rgba(0, 0, 0, 0.08);
+        --border-hover: rgba(37, 99, 235, 0.6);
+        --accent-glow: 0 10px 30px rgba(0, 0, 0, 0.12);
+        --btn-bg: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
         --btn-border: #60a5fa;
         --btn-text: #ffffff;
         --receipt-bg: linear-gradient(to bottom, #f8fafc 0%, #e2e8f0 100%);
         --receipt-text: #0369a1;
-        --input-bg: rgba(255, 255, 255, 0.8);
+        --input-bg: rgba(255, 255, 255, 0.6);
         --input-text: #0f172a;
-        --sidebar-bg: rgba(255, 255, 255, 0.3);
+        --sidebar-bg: rgba(255, 255, 255, 0.6);
     }}
 
-    /* 1. SCROLLBAR PERSONALIZADO */
+    /* GLOBAL Y SCROLLBAR */
     ::-webkit-scrollbar {{ width: 8px; height: 8px; }}
     ::-webkit-scrollbar-track {{ background: transparent; }}
     ::-webkit-scrollbar-thumb {{ background: var(--card-border); border-radius: 10px; }}
     ::-webkit-scrollbar-thumb:hover {{ background: var(--border-hover); }}
 
-    /* TRANSICIÓN GLOBAL SUAVE */
-    body, .stApp, .login-box-container, p, div, span, h1, h2, h3, button, input {{
-        transition: background 0.5s ease-in-out, color 0.5s ease-in-out, border-color 0.5s ease-in-out, box-shadow 0.5s ease-in-out !important;
-        font-family: 'Segoe UI', 'SST', sans-serif;
+    /* APLICAR FUENTE GLOBAL EXCLUYENDO LOS ICONOS DE STREAMLIT */
+    body, .stApp, .login-box-container, p, div, h1, h2, h3, button, input, 
+    span:not([class*="material"]):not([data-testid="stIconMaterial"]) {{
+        transition: background 0.4s ease, color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease !important;
+        font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif !important;
+    }}
+
+    /* FIX DEFINITIVO PARA BOTONES Y ICONOS NATIVOS DE STREAMLIT */
+    span[data-testid="stIconMaterial"],
+    span.material-symbols-rounded,
+    [data-testid="collapsedControl"], 
+    [data-testid="collapsedControl"] *,
+    [data-testid="stSidebarCollapseButton"],
+    [data-testid="stSidebarCollapseButton"] * {{
+        font-family: "Material Symbols Rounded", sans-serif !important;
+        letter-spacing: normal !important;
     }}
 
     /* FIXES STREAMLIT */
-    [data-testid="stForm"] {{ border: none !important; padding: 0 !important; }}
+    [data-testid="stForm"] {{ border: none !important; padding: 0 !important; background: transparent !important; }}
     #MainMenu, footer, .stAppDeployButton {{visibility: hidden; display: none;}}
     [data-testid="stHeader"] {{background: rgba(0,0,0,0);}}
     .block-container {{ padding-top: 2rem !important; padding-bottom: 0rem !important; }}
-    .element-container:has(#stHeader) + div button {{ display: none !important; }}
 
-    /* 2. FONDO DEGRADADO ANIMADO (MODIFICADO PARA MOVIMIENTO) */
+    /* FONDO DEGRADADO ANIMADO */
     #ps-bg-canvas {{
         background: var(--bg-gradient) !important;
-        background-size: 300% 300% !important; /* Aumentado para que el degradado pueda fluir */
-        animation: gradientFlow 20s ease infinite; /* Nueva animación de flujo */
+        background-size: 300% 300% !important;
+        animation: gradientFlow 20s ease infinite;
     }}
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {{
         background: transparent !important;
         overflow-x: hidden;
     }}
 
-    /* Definición de la animación de flujo del degradado */
     @keyframes gradientFlow {{
         0% {{ background-position: 0% 50%; }}
         50% {{ background-position: 100% 50%; }}
         100% {{ background-position: 0% 50%; }}
     }}
 
-    /* 3. ANIMACIONES DIFERENCIADAS (NORMAL VS COMPACT) */
+    /* SIDEBAR FLOTANTE */
+    [data-testid="stSidebar"] > div:first-child {{
+        background: var(--sidebar-bg) !important;
+        backdrop-filter: blur(25px);
+        margin: 15px !important;
+        border-radius: 24px !important;
+        height: calc(100vh - 30px) !important;
+        border: 1px solid var(--card-border) !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        overflow-x: hidden;
+    }}
+
+    /* ANIMACIONES */
     @keyframes slideIn {{
-        0% {{ opacity: 0; transform: translateX(50px) scale(0.95); }}
-        100% {{ opacity: 1; transform: translateX(0) scale(1); }}
+        0% {{ opacity: 0; transform: translateX(30px) translateY(10px) scale(0.98); }}
+        100% {{ opacity: 1; transform: translateX(0) translateY(0) scale(1); }}
     }}
     
     @keyframes slideUpBounce {{
-        0% {{ opacity: 0; transform: translateY(30px) scale(0.98); }}
-        70% {{ transform: translateY(-3px) scale(1); }}
+        0% {{ opacity: 0; transform: translateY(20px) scale(0.98); }}
         100% {{ opacity: 1; transform: translateY(0) scale(1); }}
     }}
 
-    /* EFECTO CASCADA Y HOVER */
+    /* SHIMMER EFFECT PARA PENDIENTES */
+    .shimmer-search {{
+        position: relative;
+    }}
+    .shimmer-search::after {{
+        content: "";
+        position: absolute;
+        top: 0; left: -150%;
+        width: 100%; height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+        animation: shimmer 2.5s infinite ease-in-out;
+        pointer-events: none;
+        border-radius: inherit;
+    }}
+
+    @keyframes shimmer {{
+        0% {{ left: -150%; }}
+        100% {{ left: 150%; }}
+    }}
+
+    /* CARDS (GLASSMORPHISM AVANZADO) */
     .order-card {{
         opacity: 0; 
-        animation: slideIn 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        animation: slideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         background: var(--card-bg);
-        backdrop-filter: blur(15px);
-        border-radius: 16px;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-radius: 20px;
         padding: 24px;
         margin-bottom: 25px;
         position: relative;
         overflow: hidden;
         border: 1px solid var(--card-border);
+        border-top: 1px solid rgba(255, 255, 255, 0.25);
+        border-left: 1px solid rgba(255, 255, 255, 0.15);
         transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease, border-color 0.4s ease, background 0.4s ease !important;
     }}
 
     .order-card-compact {{
         opacity: 0; 
-        animation: slideUpBounce 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        animation: slideUpBounce 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         background: var(--card-bg);
-        border-radius: 12px;
-        padding: 12px 20px;
-        margin-bottom: 10px;
+        border-radius: 14px;
+        padding: 14px 22px;
+        margin-bottom: 12px;
         display: flex;
         align-items: center;
         justify-content: space-between;
         border: 1px solid var(--card-border);
-        backdrop-filter: blur(10px);
-        transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease, border-color 0.4s ease, background 0.4s ease !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(12px);
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease, border-color 0.3s ease, background 0.3s ease !important;
     }}
 
     .order-card:hover, .order-card-compact:hover {{
-        transform: scale(1.02) translateY(-5px);
+        transform: scale(1.015) translateY(-4px);
         z-index: 10;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.15), inset 0 0 20px rgba(255,255,255,0.6);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.2), inset 0 0 20px rgba(255,255,255,0.03);
         border-color: var(--border-hover);
         background: var(--card-bg-hover);
     }}
 
     /* CLASE ALERTA CRÍTICA AÑADIDA */
     .card-critical {{
-        border: 2px solid #ff4b4b !important;
-        box-shadow: 0 0 15px rgba(255, 75, 75, 0.3), inset 0 0 10px rgba(255, 75, 75, 0.1) !important;
+        border: 1px solid #ef4444 !important;
+        border-top: 2px solid #ef4444 !important;
+        box-shadow: 0 0 20px rgba(239, 68, 68, 0.2), inset 0 0 10px rgba(239, 68, 68, 0.05) !important;
     }}
 
-    /* --- LOGIN PORTAL HORIZONTAL --- */
+    /* LOGIN PORTAL HORIZONTAL */
     [data-testid="stHorizontalBlock"] > div:has(.login-box-container) {{
         background: var(--card-bg);
-        backdrop-filter: blur(25px);
-        -webkit-backdrop-filter: blur(25px);
+        backdrop-filter: blur(30px);
+        -webkit-backdrop-filter: blur(30px);
         border: 1px solid var(--card-border);
-        border-radius: 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.3);
+        border-left: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 24px;
         padding: 40px 60px;
-        box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+        box-shadow: 0 25px 50px rgba(0,0,0,0.25);
         animation: portalFloat 6s ease-in-out infinite;
         text-align: center;
         max-width: 550px !important; 
@@ -185,7 +235,7 @@ st.markdown(f"""
 
     @keyframes portalFloat {{
         0%, 100% {{ transform: translateY(0); }}
-        50% {{ transform: translateY(-10px); }}
+        50% {{ transform: translateY(-8px); }}
     }}
 
     /* INPUTS BASE Y GLOW NEÓN */
@@ -193,7 +243,7 @@ st.markdown(f"""
         background: var(--input-bg) !important;
         border-radius: 12px !important;
         text-align: left !important;
-        height: 45px !important;
+        height: 48px !important;
         border: 1px solid var(--card-border) !important;
         font-weight: 600 !important;
         color: var(--input-text) !important;
@@ -203,81 +253,98 @@ st.markdown(f"""
         border-color: var(--border-hover) !important;
         box-shadow: var(--accent-glow) !important;
         outline: none !important;
+        background: rgba(255, 255, 255, 0.1) !important;
     }}
 
     .receipt-id {{
-        font-family: 'Segoe UI', sans-serif;
+        font-family: 'Courier New', 'Segoe UI', monospace !important;
         position: relative;
         background: var(--receipt-bg);
         color: var(--receipt-text);
-        padding: 10px 18px;
-        border-radius: 8px;
-        font-weight: 700;
-        border: 1px solid var(--card-border);
-        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        padding: 8px 16px;
+        border-radius: 10px;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        border: 1px solid rgba(56, 189, 248, 0.3);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
         display: inline-block;
     }}
 
     .sku-tag {{
-        background: rgba(255,255,255,0.1);
+        background: rgba(255,255,255,0.08);
         color: var(--text-heading);
         padding: 6px 14px;
-        border-radius: 5px;
+        border-radius: 6px;
         font-weight: 700;
         font-size: 11px;
         border: 1px solid var(--card-border);
         backdrop-filter: blur(5px);
     }}
     .sku-tag-disabled {{
-        opacity: 0.3;
-        background: rgba(100,100,100,0.2) !important;
+        opacity: 0.4;
+        background: rgba(100,100,100,0.15) !important;
         text-decoration: line-through;
         color: var(--text-main) !important;
     }}
 
     .badge {{
         padding: 6px 14px;
-        border-radius: 5px;
+        border-radius: 6px;
         font-size: 11px;
-        font-weight: 700;
+        font-weight: 800;
         text-transform: uppercase;
         letter-spacing: 1px;
         border: 1px solid rgba(255,255,255,0.2);
         color: white;
     }}
-    .badge-pending {{ background: linear-gradient(135deg, #d69e2e 0%, #b7791f 100%); }}
-    .badge-success {{ background: linear-gradient(135deg, #3182ce 0%, #2b6cb0 100%); }}
+    .badge-pending {{ background: linear-gradient(135deg, #d97706 0%, #b45309 100%); }}
+    .badge-success {{ background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); }}
 
     .qr-glass-container {{
-        background: rgba(255, 255, 255, 0.8);
+        background: rgba(255, 255, 255, 0.9);
         padding: 8px;
-        border-radius: 12px;
+        border-radius: 14px;
         border: 1px solid var(--card-border);
-        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.15);
         display: inline-block;
     }}
 
+    /* BOTONES MODERNIZADOS NORMALES */
     .stButton button, div[data-testid="stFormSubmitButton"] button {{
         background: var(--btn-bg) !important;
-        border-radius: 25px !important;
+        border-radius: 14px !important;
         border: 1px solid var(--btn-border) !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
         color: var(--btn-text) !important;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        height: 45px !important;
-        font-weight: bold !important;
+        transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+        height: 48px !important;
+        font-weight: 700 !important;
         text-transform: uppercase !important;
         letter-spacing: 1px !important;
     }}
     .stButton button:hover, div[data-testid="stFormSubmitButton"] button:hover {{
         box-shadow: var(--accent-glow) !important;
-        transform: scale(1.03);
+        transform: translateY(-2px) scale(1.02);
     }}
 
-    [data-testid="stSidebar"] {{
-        background: var(--sidebar-bg) !important;
-        backdrop-filter: blur(25px);
-        border-right: 1px solid var(--card-border);
+    /* !!! BOTÓN PRIMARIO GIGANTE (EXCEL) !!! */
+    button[kind="primary"] {{
+        height: 65px !important;
+        font-size: 18px !important;
+        font-weight: 800 !important;
+        border-radius: 16px !important;
+        background: linear-gradient(135deg, #10b981 0%, #047857 100%) !important; /* VERDE ESMERALDA */
+        border: 1px solid #34d399 !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.4) !important;
+        box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4) !important;
+        color: white !important;
+        letter-spacing: 1.5px !important;
+    }}
+    button[kind="primary"]:hover {{
+        box-shadow: 0 12px 35px rgba(16, 185, 129, 0.6) !important;
+        transform: translateY(-4px) scale(1.03) !important;
+        background: linear-gradient(135deg, #34d399 0%, #059669 100%) !important;
     }}
     
     /* TOGGLE TEMA (ARRIBA) */
@@ -290,8 +357,9 @@ st.markdown(f"""
         height: 48px;
         border-radius: 50%;
         border: 1px solid var(--card-border);
+        border-top: 1px solid rgba(255,255,255,0.3);
         background: var(--card-bg);
-        backdrop-filter: blur(10px);
+        backdrop-filter: blur(12px);
         cursor: pointer;
         font-size: 20px;
         display: flex;
@@ -306,17 +374,18 @@ st.markdown(f"""
         box-shadow: var(--accent-glow);
     }}
 
-    /* 3. TOGGLE VISTA COMPACTA FLOTANTE (DEBAJO DEL TEMA) */
+    /* TOGGLE VISTA COMPACTA FLOTANTE */
     div[data-testid="stToggle"] {{
         position: fixed !important;
         top: 80px !important;
         right: 20px !important;
         z-index: 999999 !important;
         background: var(--card-bg) !important;
-        backdrop-filter: blur(10px) !important;
+        backdrop-filter: blur(12px) !important;
         padding: 5px 15px !important;
         border-radius: 25px !important;
         border: 1px solid var(--card-border) !important;
+        border-top: 1px solid rgba(255,255,255,0.2) !important;
         box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
         transition: all 0.3s ease !important;
     }}
@@ -327,7 +396,7 @@ st.markdown(f"""
     }}
     div[data-testid="stToggle"] p {{
         color: var(--text-heading) !important;
-        font-weight: 600 !important;
+        font-weight: 700 !important;
         margin: 0 !important;
     }}
     </style>
@@ -568,7 +637,6 @@ def sync_data(file_o_buffer=None, file_f_buffer=None):
                     sku = clean_sku(r["SKU"])
                     f = pd.to_datetime(r["Created at"], dayfirst=True, errors="coerce")
                     f_s = f.strftime("%Y-%m-%d") if pd.notna(f) else None
-                    # INSERT OR IGNORE previene que se dupliquen las filas existentes
                     c.execute("INSERT OR IGNORE INTO ordenes VALUES (?,?)", (oid, f_s))
                     c.execute("INSERT OR IGNORE INTO ordenes_sku VALUES (?,?)", (oid, sku))
 
@@ -592,7 +660,6 @@ def sync_data(file_o_buffer=None, file_f_buffer=None):
                     f = pd.to_datetime(r["b_transaction_date"], dayfirst=True, errors="coerce")
                     f_s = f.strftime("%Y-%m-%d") if pd.notna(f) else None
                     
-                    # Verificamos que esta línea de factura exacta no exista antes de insertarla
                     c.execute("SELECT 1 FROM facturas WHERE receipt_number=? AND sku=?", (rec, sku))
                     if not c.fetchone():
                         c.execute("INSERT INTO facturas VALUES (?,?,?)", (rec, sku, f_s))
@@ -665,7 +732,7 @@ if not st.session_state.authenticated:
             st.markdown('<div class="login-box-container"></div>', unsafe_allow_html=True)
             st.markdown(f"<div style='text-align: center; margin-bottom: 10px; font-size: 3rem;'>{icon_html}</div>", unsafe_allow_html=True)
             
-            st.markdown("<div style='color: var(--text-heading); text-align: center; font-size: 1.75rem; font-weight: 700; margin-bottom: 20px; letter-spacing: 2px;'>RECEIPT TRACKER</div>", unsafe_allow_html=True)
+            st.markdown("<div style='color: var(--text-heading); text-align: center; font-size: 1.75rem; font-weight: 800; margin-bottom: 20px; letter-spacing: 2px;'>RECEIPT TRACKER</div>", unsafe_allow_html=True)
             
             c1, c2 = st.columns(2)
             with c1:
@@ -674,7 +741,7 @@ if not st.session_state.authenticated:
                 pass_login = st.text_input("Contraseña", placeholder="Contraseña", type="password", label_visibility="collapsed")
             
             st.write("")
-            submit_button = st.form_submit_button("Iniciar Sesión", use_container_width=True)
+            submit_button = st.form_submit_button("Iniciar Sesión", use_container_width=True, type="secondary")
             
             if submit_button:
                 role = check_login(user_login, pass_login)
@@ -695,12 +762,12 @@ if "disabled_skus" not in st.session_state: st.session_state.disabled_skus = {}
 
 sys_config = load_config()
 
-# 4. TOGGLE FLOTANTE VISTA COMPACTA (FUERA DEL SIDEBAR)
+# TOGGLE FLOTANTE VISTA COMPACTA (FUERA DEL SIDEBAR)
 view_compact = st.toggle("Vista Compacta", value=False)
 
 # SIDEBAR LÓGICA DE MENÚ
 with st.sidebar:
-    st.markdown(f"<div style='color: var(--text-heading); font-size: 1.5rem; font-weight: 700; font-family: Segoe UI;'>⚙️ Panel {st.session_state.username.capitalize()}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='color: var(--text-heading); font-size: 1.5rem; font-weight: 800;'>⚙️ Panel {st.session_state.username.capitalize()}</div>", unsafe_allow_html=True)
     st.write("")
     
     # Menú extendido si es admin
@@ -718,7 +785,7 @@ with st.sidebar:
         conn.close()
         
         stats_html = f"""
-            <div style='background: var(--card-bg); padding: 20px; border-radius: 16px; border: 1px solid var(--card-border); position: relative; overflow: hidden; margin-bottom: 20px;'>
+            <div style='background: var(--card-bg); padding: 20px; border-radius: 16px; border: 1px solid var(--card-border); border-top: 1px solid rgba(255,255,255,0.2); position: relative; overflow: hidden; margin-bottom: 20px;'>
                 <p style='margin:0; font-size:12px; font-weight:700; color:var(--text-main); letter-spacing: 1px;'>ÓRDENES</p>
                 <h2 style='margin:0; color:var(--text-heading); border:none;'>{o_count}</h2>
                 <hr style='margin:10px 0; border:0; border-top:1px solid var(--card-border);'>
@@ -807,7 +874,7 @@ elif menu_activo == "👥 Usuarios":
         with c2: nu_pass = st.text_input("Contraseña", type="password")
         with c3: nu_rol = st.selectbox("Rol", ["user", "admin"])
         
-        if st.form_submit_button("Crear Usuario", use_container_width=True):
+        if st.form_submit_button("Crear Usuario", use_container_width=True, type="secondary"):
             if nu_user and nu_pass:
                 conn = sqlite3.connect(DB_PATH)
                 try:
@@ -826,7 +893,7 @@ elif menu_activo == "👥 Usuarios":
     st.dataframe(df_users, use_container_width=True, hide_index=True)
 
 
-# ================== MÓDULO RASTREADOR (VISTA ORIGINAL) ==================
+# ================== MÓDULO RASTREADOR ==================
 elif menu_activo == "🔍 Rastreador":
     
     st.markdown("<div style='text-align: center; color: var(--text-heading); font-size: 2.5rem; font-weight: 800; letter-spacing: 2px; margin-bottom: 20px;'>RECEIPT TRACKER</div>", unsafe_allow_html=True)
@@ -839,8 +906,8 @@ elif menu_activo == "🔍 Rastreador":
     df_to_show = full_df[full_df["order_id"].str.contains(search.strip(), case=False)] if search else full_df.copy()
 
     with col_exp:
-        # Sistema de exportación con datos de factura cruzados
-        if st.button("📥 Generar Excel", use_container_width=True):
+        # BOTÓN PRIMARIO (GIGANTE) DE EXCEL
+        if st.button("📥 Generar Excel", use_container_width=True, type="primary"):
             with st.spinner("Calculando estado de facturas..."):
                 export_data = []
                 conn = sqlite3.connect(DB_PATH)
@@ -876,16 +943,15 @@ elif menu_activo == "🔍 Rastreador":
                 df_export.to_excel(xls_data, index=False, engine='openpyxl')
                 st.session_state.export_file = xls_data.getvalue()
 
-        # Mostrar el botón de descarga solo cuando el archivo ya está preparado en sesión
+        # BOTÓN DE DESCARGA TAMBIÉN ES PRIMARIO (GIGANTE)
         if "export_file" in st.session_state:
-            st.download_button(label="⬇️ Descargar Reporte", data=st.session_state.export_file, file_name="reporte_tracker.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
-
+            st.download_button(label="⬇️ Descargar Reporte", data=st.session_state.export_file, file_name="reporte_tracker.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, type="primary")
 
     if "current_page" not in st.session_state: st.session_state.current_page = 1
     pages = max(1, (len(df_to_show) + PAGE_SIZE - 1) // PAGE_SIZE)
     df_page = df_to_show.iloc[(st.session_state.current_page-1)*PAGE_SIZE : st.session_state.current_page*PAGE_SIZE]
 
-    # RENDER DE CARDS (Inyectando el animation-delay para el efecto cascada)
+    # RENDER DE CARDS
     for i, (_, r) in enumerate(df_page.iterrows()):
         order, f_creacion, skus_raw = r["order_id"], r["fecha_creacion"], r["skus"]
         
@@ -899,14 +965,18 @@ elif menu_activo == "🔍 Rastreador":
         badge_class = "badge-success" if factura else "badge-pending"
         badge_text = "Sincronizado" if factura else "Pendiente"
 
-        # Lógica Alerta Crítica
+        # Lógica Alerta Crítica y Shimmer
         critical_class = ""
-        if not factura and f_creacion:
-            try:
-                dias_pendientes = (datetime.now() - datetime.strptime(f_creacion, "%Y-%m-%d")).days
-                if dias_pendientes >= sys_config['alert_days']:
-                    critical_class = "card-critical"
-            except: pass
+        shimmer_class = ""
+        
+        if not factura:
+            shimmer_class = "shimmer-search"
+            if f_creacion:
+                try:
+                    dias_pendientes = (datetime.now() - datetime.strptime(f_creacion, "%Y-%m-%d")).days
+                    if dias_pendientes >= sys_config['alert_days']:
+                        critical_class = "card-critical"
+                except: pass
 
         # Retraso progresivo para la cascada (0.08s por tarjeta)
         delay = i * 0.08
@@ -914,13 +984,13 @@ elif menu_activo == "🔍 Rastreador":
         if view_compact:
             # RENDER VISTA COMPACTA
             st.markdown(f"""
-                <div class="order-card-compact {critical_class}" style="animation-delay: {delay}s;">
+                <div class="order-card-compact {critical_class} {shimmer_class}" style="animation-delay: {delay}s;">
                     <div style="display:flex; align-items:center; gap:15px; flex:1;">
                         <span class="badge {badge_class}" style="min-width:90px; text-align:center;">{badge_text}</span>
                         <b style="color:var(--text-heading); font-size:14px;">#{order}</b>
                         <span style="font-size:12px; color:var(--text-main);">{f_creacion or "—"}</span>
                     </div>
-                    <div class="receipt-id" style="font-size:11px; padding:4px 10px;">🧾 {factura or "Sin Factura"}</div>
+                    <div class="receipt-id" style="font-size:11px; padding:6px 10px;">🧾 {factura or "Buscando..."}</div>
                 </div>
             """, unsafe_allow_html=True)
         else:
@@ -929,17 +999,17 @@ elif menu_activo == "🔍 Rastreador":
             tags_html = "".join([f'<span class="sku-tag {"sku-tag-disabled" if s in st.session_state.disabled_skus[order] else ""}">{s}</span>' for s in all_skus])
             
             st.markdown(f"""
-                <div class="order-card {critical_class}" style="animation-delay: {delay}s;">
+                <div class="order-card {critical_class} {shimmer_class}" style="animation-delay: {delay}s;">
                     <div style="display:flex; justify-content:space-between; align-items:start;">
                         <div style="flex:1;">
                             <span class="badge {badge_class}">{badge_text}</span>
-                            <div style="margin:8px 0 0 0; color:var(--text-heading); font-size: 1.5rem; font-weight: 700; letter-spacing: 1px;">Orden #{order}</div>
-                            <p style="margin:2px 0; font-size:12px; color:var(--text-main);">📅 {f_creacion or "—"} · ⏱️ Ventana: {sys_config['ventana'] + bonus}d</p>
-                            <div style="margin: 15px 0;"><div class="receipt-id">🧾 {factura if factura else "BUSCANDO..."}</div></div>
-                            <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:6px;">{tags_html}</div>
+                            <div style="margin:8px 0 0 0; color:var(--text-heading); font-size: 1.8rem; font-weight: 800; letter-spacing: 1px;">Orden #{order}</div>
+                            <p style="margin:2px 0; font-size:13px; color:var(--text-main); font-weight: 600;">📅 {f_creacion or "—"} · ⏱️ Ventana: {sys_config['ventana'] + bonus}d</p>
+                            <div style="margin: 18px 0;"><div class="receipt-id">🧾 {factura if factura else "BUSCANDO FACTURA..."}</div></div>
+                            <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:8px;">{tags_html}</div>
                         </div>
                         <div class="qr-glass-container">
-                            <img src="data:image/png;base64,{qr_img}" width="80" style="border-radius:10px;">
+                            <img src="data:image/png;base64,{qr_img}" width="85" style="border-radius:10px;">
                         </div>
                     </div>
                 </div>
@@ -975,10 +1045,10 @@ elif menu_activo == "🔍 Rastreador":
     st.markdown("<br>", unsafe_allow_html=True)
     p1, p2, p3 = st.columns([1, 2, 1])
     with p1:
-        if st.button("⬅️ Anterior", use_container_width=True) and st.session_state.current_page > 1:
+        if st.button("« Anterior", use_container_width=True) and st.session_state.current_page > 1:
             st.session_state.current_page -= 1; st.rerun()
     with p2:
-        st.markdown(f"<p style='text-align:center; color:var(--text-heading); font-weight:700; font-size:14px; letter-spacing: 2px;'>{st.session_state.current_page} / {pages}</p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='text-align:center; color:var(--text-heading); font-weight:800; font-size:15px; letter-spacing: 2px;'>{st.session_state.current_page} / {pages}</p>", unsafe_allow_html=True)
     with p3:
-        if st.button("Siguiente ➡️", use_container_width=True) and st.session_state.current_page < pages:
+        if st.button("Siguiente »", use_container_width=True) and st.session_state.current_page < pages:
             st.session_state.current_page += 1; st.rerun()
