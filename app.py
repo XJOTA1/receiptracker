@@ -29,10 +29,10 @@ if "user_role" not in st.session_state:
 if "username" not in st.session_state:
     st.session_state.username = ""
 
-# --- CSS MEJORADO ---
+# --- CSS MEJORADO (CON UI/UX AVANZADO Y CORRECCIÓN DE SIDEBAR) ---
 st.markdown(f"""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=SST:wght@400;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap');
     @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0');
     
     /* DEFINICIÓN DE VARIABLES PARA MODO CLARO Y OSCURO */
@@ -87,6 +87,10 @@ st.markdown(f"""
         font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif !important;
     }}
 
+    .mono-id {{
+        font-family: 'JetBrains Mono', monospace !important;
+    }}
+
     /* FIX DEFINITIVO PARA BOTONES Y ICONOS NATIVOS DE STREAMLIT */
     span[data-testid="stIconMaterial"],
     span.material-symbols-rounded,
@@ -103,6 +107,22 @@ st.markdown(f"""
     #MainMenu, footer, .stAppDeployButton {{visibility: hidden; display: none;}}
     [data-testid="stHeader"] {{background: rgba(0,0,0,0);}}
     .block-container {{ padding-top: 2rem !important; padding-bottom: 0rem !important; }}
+
+    /* DESHABILITAR REDIMENSIONAMIENTO DEL SIDEBAR (BLOQUEAR ANCHO) */
+    [data-testid="stSidebarResizer"] {{ display: none !important; }}
+
+    /* STICKY SEARCH BAR */
+    div[data-testid="stTextInput"] {{
+        position: sticky;
+        top: 2rem;
+        z-index: 1000;
+        background: transparent;
+        padding-bottom: 10px;
+    }}
+    div[data-testid="stTextInput"] input {{
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;
+        backdrop-filter: blur(15px);
+    }}
 
     /* FONDO DEGRADADO ANIMADO */
     #ps-bg-canvas {{
@@ -121,10 +141,19 @@ st.markdown(f"""
         100% {{ background-position: 0% 50%; }}
     }}
 
+    /* =========================================================
+       CORRECCIÓN DEL SIDEBAR: FONDO PADRE TRANSPARENTE
+       ========================================================= */
+    [data-testid="stSidebar"] {{
+        background-color: transparent !important;
+        border: none !important;
+    }}
+
     /* SIDEBAR FLOTANTE */
     [data-testid="stSidebar"] > div:first-child {{
         background: var(--sidebar-bg) !important;
         backdrop-filter: blur(25px);
+        -webkit-backdrop-filter: blur(25px);
         margin: 15px !important;
         border-radius: 24px !important;
         height: calc(100vh - 30px) !important;
@@ -139,30 +168,24 @@ st.markdown(f"""
         0% {{ opacity: 0; transform: translateX(30px) translateY(10px) scale(0.98); }}
         100% {{ opacity: 1; transform: translateX(0) translateY(0) scale(1); }}
     }}
-    
     @keyframes slideUpBounce {{
         0% {{ opacity: 0; transform: translateY(20px) scale(0.98); }}
         100% {{ opacity: 1; transform: translateY(0) scale(1); }}
     }}
 
-    /* SHIMMER EFFECT PARA PENDIENTES */
-    .shimmer-search {{
-        position: relative;
+    /* SKELETON LOADING */
+    .skeleton-text {{
+        height: 14px;
+        background: linear-gradient(90deg, var(--card-border) 25%, rgba(255,255,255,0.08) 50%, var(--card-border) 75%);
+        background-size: 200% 100%;
+        animation: shimmer-skeleton 2s infinite linear;
+        border-radius: 6px;
+        display: inline-block;
+        vertical-align: middle;
     }}
-    .shimmer-search::after {{
-        content: "";
-        position: absolute;
-        top: 0; left: -150%;
-        width: 100%; height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
-        animation: shimmer 2.5s infinite ease-in-out;
-        pointer-events: none;
-        border-radius: inherit;
-    }}
-
-    @keyframes shimmer {{
-        0% {{ left: -150%; }}
-        100% {{ left: 150%; }}
+    @keyframes shimmer-skeleton {{
+        0% {{ background-position: 200% 0; }}
+        100% {{ background-position: -200% 0; }}
     }}
 
     /* CARDS (GLASSMORPHISM AVANZADO) */
@@ -179,7 +202,6 @@ st.markdown(f"""
         overflow: hidden;
         border: 1px solid var(--card-border);
         border-top: 1px solid rgba(255, 255, 255, 0.25);
-        border-left: 1px solid rgba(255, 255, 255, 0.15);
         transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease, border-color 0.4s ease, background 0.4s ease !important;
     }}
 
@@ -207,11 +229,23 @@ st.markdown(f"""
         background: var(--card-bg-hover);
     }}
 
-    /* CLASE ALERTA CRÍTICA AÑADIDA */
+    /* ALERTA CRÍTICA (RESTAURADA A BORDE SÓLIDO Y LIMPIO) */
     .card-critical {{
         border: 1px solid #ef4444 !important;
         border-top: 2px solid #ef4444 !important;
-        box-shadow: 0 0 20px rgba(239, 68, 68, 0.2), inset 0 0 10px rgba(239, 68, 68, 0.05) !important;
+        box-shadow: 0 0 20px rgba(239, 68, 68, 0.2) !important;
+    }}
+
+    /* EMPTY STATE */
+    .empty-state {{
+        text-align: center;
+        padding: 80px 20px;
+        color: var(--text-main);
+        background: var(--card-bg);
+        border-radius: 20px;
+        border: 1px dashed var(--card-border);
+        margin-top: 20px;
+        backdrop-filter: blur(10px);
     }}
 
     /* LOGIN PORTAL HORIZONTAL */
@@ -257,7 +291,7 @@ st.markdown(f"""
     }}
 
     .receipt-id {{
-        font-family: 'Courier New', 'Segoe UI', monospace !important;
+        font-family: 'JetBrains Mono', monospace !important;
         position: relative;
         background: var(--receipt-bg);
         color: var(--receipt-text);
@@ -267,7 +301,8 @@ st.markdown(f"""
         letter-spacing: 0.5px;
         border: 1px solid rgba(56, 189, 248, 0.3);
         box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-        display: inline-block;
+        display: inline-flex;
+        align-items: center;
     }}
 
     .sku-tag {{
@@ -298,7 +333,7 @@ st.markdown(f"""
         color: white;
     }}
     .badge-pending {{ background: linear-gradient(135deg, #d97706 0%, #b45309 100%); }}
-    .badge-success {{ background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); }}
+    .badge-success {{ background: linear-gradient(135deg, #10b981 0%, #059669 100%); }}
 
     .qr-glass-container {{
         background: rgba(255, 255, 255, 0.9);
@@ -312,7 +347,7 @@ st.markdown(f"""
     /* BOTONES MODERNIZADOS NORMALES */
     .stButton button, div[data-testid="stFormSubmitButton"] button {{
         background: var(--btn-bg) !important;
-        border-radius: 14px !important;
+        border-radius: 12px !important;
         border: 1px solid var(--btn-border) !important;
         border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
         color: var(--btn-text) !important;
@@ -328,22 +363,15 @@ st.markdown(f"""
         transform: translateY(-2px) scale(1.02);
     }}
 
-    /* !!! BOTÓN PRIMARIO GIGANTE (EXCEL) !!! */
+    /* !!! BOTÓN PRIMARIO (EXCEL) !!! */
     button[kind="primary"] {{
-        height: 65px !important;
-        font-size: 18px !important;
-        font-weight: 800 !important;
-        border-radius: 16px !important;
         background: linear-gradient(135deg, #10b981 0%, #047857 100%) !important; /* VERDE ESMERALDA */
         border: 1px solid #34d399 !important;
         border-top: 1px solid rgba(255, 255, 255, 0.4) !important;
-        box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4) !important;
-        color: white !important;
-        letter-spacing: 1.5px !important;
+        box-shadow: 0 6px 15px rgba(16, 185, 129, 0.3) !important;
     }}
     button[kind="primary"]:hover {{
-        box-shadow: 0 12px 35px rgba(16, 185, 129, 0.6) !important;
-        transform: translateY(-4px) scale(1.03) !important;
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.5) !important;
         background: linear-gradient(135deg, #34d399 0%, #059669 100%) !important;
     }}
     
@@ -798,6 +826,50 @@ with st.sidebar:
         if st.button("🔄 Refrescar Cache", use_container_width=True):
             st.cache_data.clear(); st.rerun()
 
+    # --- NUEVO: EXPORTAR EXCEL (SOLO ADMIN) EN EL SIDEBAR ---
+    if st.session_state.user_role == "admin":
+        st.divider()
+        st.markdown("<p style='font-size:12px; font-weight:700; color:var(--text-main); letter-spacing: 1px;'>ADMINISTRACIÓN</p>", unsafe_allow_html=True)
+        if st.button("📥 Generar Excel Global", use_container_width=True, type="primary"):
+            with st.spinner("Calculando estado de todas las facturas..."):
+                export_data = []
+                conn = sqlite3.connect(DB_PATH)
+                df_all = load_base_df() # Exportamos TODA la base
+                for _, r in df_all.iterrows():
+                    order = r["order_id"]
+                    f_creacion = r["fecha_creacion"]
+                    skus_raw = r["skus"]
+                    
+                    all_skus = [s.strip() for s in skus_raw.split(',') if s.strip() != ""]
+                    disabled = st.session_state.disabled_skus.get(order, [])
+                    active_skus = [s for s in all_skus if s not in disabled and s != sys_config['sku_envio']]
+                    
+                    bonus = st.session_state.extra_days.get(order, 0)
+                    factura = find_matching_factura(active_skus, f_creacion, bonus)
+                    
+                    fecha_fac = "-"
+                    if factura:
+                        fecha_res = conn.execute("SELECT fecha FROM facturas WHERE receipt_number=? LIMIT 1", (factura,)).fetchone()
+                        if fecha_res:
+                            fecha_fac = fecha_res[0]
+                            
+                    export_data.append({
+                        "Orden ID": order,
+                        "Fecha Orden": f_creacion,
+                        "SKUs": skus_raw,
+                        "N° Factura": factura if factura else "Pendiente",
+                        "Fecha Factura": fecha_fac
+                    })
+                conn.close()
+                
+                df_export = pd.DataFrame(export_data)
+                xls_data = BytesIO()
+                df_export.to_excel(xls_data, index=False, engine='openpyxl')
+                st.session_state.export_file = xls_data.getvalue()
+
+        if "export_file" in st.session_state:
+            st.download_button(label="⬇️ Descargar Reporte", data=st.session_state.export_file, file_name="reporte_tracker_global.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, type="primary")
+
     if st.button("🚪 Cerrar Sesión", use_container_width=True):
         st.session_state.authenticated = False
         st.rerun()
@@ -898,157 +970,142 @@ elif menu_activo == "🔍 Rastreador":
     
     st.markdown("<div style='text-align: center; color: var(--text-heading); font-size: 2.5rem; font-weight: 800; letter-spacing: 2px; margin-bottom: 20px;'>RECEIPT TRACKER</div>", unsafe_allow_html=True)
     
-    col_busq, col_exp = st.columns([4, 1.5])
-    with col_busq:
-        search = st.text_input("", placeholder="🔍 Buscar ID de orden...", label_visibility="collapsed")
+    # Búsqueda a todo el ancho, Sticky via CSS
+    search = st.text_input("", placeholder="🔍 Buscar ID de orden...", label_visibility="collapsed")
 
     full_df = load_base_df()
     df_to_show = full_df[full_df["order_id"].str.contains(search.strip(), case=False)] if search else full_df.copy()
 
-    with col_exp:
-        # BOTÓN PRIMARIO (GIGANTE) DE EXCEL
-        if st.button("📥 Generar Excel", use_container_width=True, type="primary"):
-            with st.spinner("Calculando estado de facturas..."):
-                export_data = []
-                conn = sqlite3.connect(DB_PATH)
-                for _, r in df_to_show.iterrows():
-                    order = r["order_id"]
-                    f_creacion = r["fecha_creacion"]
-                    skus_raw = r["skus"]
-                    
-                    all_skus = [s.strip() for s in skus_raw.split(',') if s.strip() != ""]
-                    disabled = st.session_state.disabled_skus.get(order, [])
-                    active_skus = [s for s in all_skus if s not in disabled and s != sys_config['sku_envio']]
-                    
-                    bonus = st.session_state.extra_days.get(order, 0)
-                    factura = find_matching_factura(active_skus, f_creacion, bonus)
-                    
-                    fecha_fac = "-"
-                    if factura:
-                        fecha_res = conn.execute("SELECT fecha FROM facturas WHERE receipt_number=? LIMIT 1", (factura,)).fetchone()
-                        if fecha_res:
-                            fecha_fac = fecha_res[0]
-                            
-                    export_data.append({
-                        "Orden ID": order,
-                        "Fecha Orden": f_creacion,
-                        "SKUs": skus_raw,
-                        "N° Factura": factura if factura else "Pendiente",
-                        "Fecha Factura": fecha_fac
-                    })
-                conn.close()
-                
-                df_export = pd.DataFrame(export_data)
-                xls_data = BytesIO()
-                df_export.to_excel(xls_data, index=False, engine='openpyxl')
-                st.session_state.export_file = xls_data.getvalue()
-
-        # BOTÓN DE DESCARGA TAMBIÉN ES PRIMARIO (GIGANTE)
-        if "export_file" in st.session_state:
-            st.download_button(label="⬇️ Descargar Reporte", data=st.session_state.export_file, file_name="reporte_tracker.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, type="primary")
-
-    if "current_page" not in st.session_state: st.session_state.current_page = 1
-    pages = max(1, (len(df_to_show) + PAGE_SIZE - 1) // PAGE_SIZE)
-    df_page = df_to_show.iloc[(st.session_state.current_page-1)*PAGE_SIZE : st.session_state.current_page*PAGE_SIZE]
-
-    # RENDER DE CARDS
-    for i, (_, r) in enumerate(df_page.iterrows()):
-        order, f_creacion, skus_raw = r["order_id"], r["fecha_creacion"], r["skus"]
+    # MANEJO DEL ESTADO VACÍO (EMPTY STATE)
+    if df_to_show.empty:
+        st.markdown(f"""
+            <div class="empty-state">
+                <span class="material-symbols-rounded" style="font-size: 60px; opacity: 0.5;">search_off</span>
+                <h3 style="color: var(--text-heading); margin-top: 15px;">No se encontraron resultados</h3>
+                <p>No hay órdenes que coincidan con la búsqueda "{search}"</p>
+            </div>
+        """, unsafe_allow_html=True)
+    else:
+        if "current_page" not in st.session_state: st.session_state.current_page = 1
+        pages = max(1, (len(df_to_show) + PAGE_SIZE - 1) // PAGE_SIZE)
         
-        all_skus = [s.strip() for s in skus_raw.split(',') if s.strip() != ""]
-        if order not in st.session_state.disabled_skus: st.session_state.disabled_skus[order] = []
-        active_skus = [s for s in all_skus if s not in st.session_state.disabled_skus[order] and s != sys_config['sku_envio']]
-        
-        bonus = st.session_state.extra_days.get(order, 0)
-        factura = find_matching_factura(active_skus, f_creacion, bonus)
-        
-        badge_class = "badge-success" if factura else "badge-pending"
-        badge_text = "Sincronizado" if factura else "Pendiente"
-
-        # Lógica Alerta Crítica y Shimmer
-        critical_class = ""
-        shimmer_class = ""
-        
-        if not factura:
-            shimmer_class = "shimmer-search"
-            if f_creacion:
-                try:
-                    dias_pendientes = (datetime.now() - datetime.strptime(f_creacion, "%Y-%m-%d")).days
-                    if dias_pendientes >= sys_config['alert_days']:
-                        critical_class = "card-critical"
-                except: pass
-
-        # Retraso progresivo para la cascada (0.08s por tarjeta)
-        delay = i * 0.08
-
-        if view_compact:
-            # RENDER VISTA COMPACTA
-            st.markdown(f"""
-                <div class="order-card-compact {critical_class} {shimmer_class}" style="animation-delay: {delay}s;">
-                    <div style="display:flex; align-items:center; gap:15px; flex:1;">
-                        <span class="badge {badge_class}" style="min-width:90px; text-align:center;">{badge_text}</span>
-                        <b style="color:var(--text-heading); font-size:14px;">#{order}</b>
-                        <span style="font-size:12px; color:var(--text-main);">{f_creacion or "—"}</span>
-                    </div>
-                    <div class="receipt-id" style="font-size:11px; padding:6px 10px;">🧾 {factura or "Buscando..."}</div>
-                </div>
-            """, unsafe_allow_html=True)
-        else:
-            # RENDER VISTA NORMAL
-            qr_img = get_qr_base64(str(factura or "PENDIENTE"))
-            tags_html = "".join([f'<span class="sku-tag {"sku-tag-disabled" if s in st.session_state.disabled_skus[order] else ""}">{s}</span>' for s in all_skus])
+        # Reset de paginación si se busca algo
+        if st.session_state.current_page > pages: st.session_state.current_page = 1
             
-            st.markdown(f"""
-                <div class="order-card {critical_class} {shimmer_class}" style="animation-delay: {delay}s;">
-                    <div style="display:flex; justify-content:space-between; align-items:start;">
-                        <div style="flex:1;">
-                            <span class="badge {badge_class}">{badge_text}</span>
-                            <div style="margin:8px 0 0 0; color:var(--text-heading); font-size: 1.8rem; font-weight: 800; letter-spacing: 1px;">Orden #{order}</div>
-                            <p style="margin:2px 0; font-size:13px; color:var(--text-main); font-weight: 600;">📅 {f_creacion or "—"} · ⏱️ Ventana: {sys_config['ventana'] + bonus}d</p>
-                            <div style="margin: 18px 0;"><div class="receipt-id">🧾 {factura if factura else "BUSCANDO FACTURA..."}</div></div>
-                            <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:8px;">{tags_html}</div>
+        df_page = df_to_show.iloc[(st.session_state.current_page-1)*PAGE_SIZE : st.session_state.current_page*PAGE_SIZE]
+
+        # RENDER DE CARDS
+        for i, (_, r) in enumerate(df_page.iterrows()):
+            order, f_creacion, skus_raw = r["order_id"], r["fecha_creacion"], r["skus"]
+            
+            all_skus = [s.strip() for s in skus_raw.split(',') if s.strip() != ""]
+            if order not in st.session_state.disabled_skus: st.session_state.disabled_skus[order] = []
+            active_skus = [s for s in all_skus if s not in st.session_state.disabled_skus[order] and s != sys_config['sku_envio']]
+            
+            bonus = st.session_state.extra_days.get(order, 0)
+            factura = find_matching_factura(active_skus, f_creacion, bonus)
+            
+            badge_class = "badge-success" if factura else "badge-pending"
+            badge_text = "Sincronizado" if factura else "Pendiente"
+            
+            # Lógica Alerta Crítica y Shimmer
+            critical_class = ""
+            
+            if not factura:
+                if f_creacion:
+                    try:
+                        dias_pendientes = (datetime.now() - datetime.strptime(f_creacion, "%Y-%m-%d")).days
+                        if dias_pendientes >= sys_config['alert_days']:
+                            critical_class = "card-critical"
+                    except: pass
+
+            # Retraso progresivo para la cascada (0.08s por tarjeta)
+            delay = i * 0.08
+
+            if view_compact:
+                # RENDER VISTA COMPACTA CON SKELETON
+                skeleton_html = '<div class="skeleton-text" style="width: 70px; margin-left: 5px;"></div>'
+                
+                st.markdown(f"""
+                    <div class="order-card-compact {critical_class}" style="animation-delay: {delay}s;">
+                        <div style="display:flex; align-items:center; gap:15px; flex:1;">
+                            <span class="badge {badge_class}" style="min-width:90px; text-align:center;">{badge_text}</span>
+                            <b class="mono-id" style="font-size:14px;">#{order}</b>
+                            <span style="font-size:12px; color:var(--text-main);">{f_creacion or "—"}</span>
                         </div>
-                        <div class="qr-glass-container">
-                            <img src="data:image/png;base64,{qr_img}" width="85" style="border-radius:10px;">
+                        <div class="receipt-id" style="font-size:11px; padding:6px 10px; margin-left: 10px;">
+                            <span class="material-symbols-rounded" style="font-size:12px; margin-right:4px;">receipt_long</span> 
+                            {factura if factura else skeleton_html}
                         </div>
                     </div>
-                </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+            else:
+                # RENDER VISTA NORMAL CON SKELETON
+                qr_img = get_qr_base64(str(factura or "PENDIENTE"))
+                tags_html = "".join([f'<span class="sku-tag {"sku-tag-disabled" if s in st.session_state.disabled_skus[order] else ""}">{s}</span>' for s in all_skus])
+                skeleton_html = '<div class="skeleton-text" style="width: 130px; margin-left: 8px;"></div>'
+                
+                st.markdown(f"""
+                    <div class="order-card {critical_class}" style="animation-delay: {delay}s;">
+                        <div style="display:flex; justify-content:space-between; align-items:start;">
+                            <div style="flex:1;">
+                                <span class="badge {badge_class}">{badge_text}</span>
+                                <div style="margin:8px 0 0 0; color:var(--text-heading); font-size: 1.8rem; font-weight: 800; letter-spacing: 1px;">
+                                    Orden <span class="mono-id">#{order}</span>
+                                </div>
+                                <p style="margin:2px 0; font-size:13px; color:var(--text-main); font-weight: 600;">
+                                    <span class="material-symbols-rounded" style="font-size:14px; vertical-align:middle;">calendar_month</span> {f_creacion or "—"} · 
+                                    <span class="material-symbols-rounded" style="font-size:14px; vertical-align:middle;">timelapse</span> Ventana: {sys_config['ventana'] + bonus}d
+                                </p>
+                                <div style="margin: 18px 0;">
+                                    <div class="receipt-id">
+                                        <span class="material-symbols-rounded" style="font-size:16px;">receipt_long</span>
+                                        {factura if factura else skeleton_html}
+                                    </div>
+                                </div>
+                                <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:8px;">{tags_html}</div>
+                            </div>
+                            <div class="qr-glass-container" style="opacity: {'1' if factura else '0.1'}; transition: opacity 0.3s ease;">
+                                <img src="data:image/png;base64,{qr_img}" width="85" style="border-radius:10px;">
+                            </div>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
 
-        # Controles de acción (solo visibles en vista normal para no saturar)
-        if not view_compact and not factura:
-            c1, c2, c3 = st.columns([1, 1, 1.5])
-            with c1:
-                with st.popover("⚙️ Stock", use_container_width=True):
-                    for s in [sku for sku in all_skus if sku != sys_config['sku_envio']]:
-                        is_disabled = s in st.session_state.disabled_skus[order]
-                        if st.checkbox(f"SKU {s}", value=not is_disabled, key=f"stock_{order}_{s}") == is_disabled:
-                            if is_disabled: st.session_state.disabled_skus[order].remove(s)
-                            else: st.session_state.disabled_skus[order].append(s)
-                            add_log(st.session_state.username, f"Modificó Stock en {order} (SKU: {s})")
-                            st.rerun()
-            with c2:
-                if st.button(f"🔍 +5 Días", key=f"btn_{order}", use_container_width=True):
-                    st.session_state.extra_days[order] = bonus + 5
-                    add_log(st.session_state.username, f"Extendió búsqueda en {order} (+5d)")
-                    st.rerun()
-            with c3:
-                with st.expander("🛠️ Diag"):
-                    conn = sqlite3.connect(DB_PATH)
-                    if active_skus:
-                        ps = ",".join(['?'] * len(active_skus))
-                        df_diag = pd.read_sql(f"SELECT receipt_number, fecha, sku FROM facturas WHERE sku IN ({ps}) ORDER BY fecha DESC LIMIT 3", conn, params=active_skus)
-                        st.dataframe(df_diag, hide_index=True)
-                    conn.close()
+            # Controles de acción (solo visibles en vista normal para no saturar)
+            if not view_compact and not factura:
+                c1, c2, c3 = st.columns([1, 1, 1.5])
+                with c1:
+                    with st.popover("⚙️ Stock", help="Excluye temporalmente SKUs que puedan estar bloqueando la coincidencia de esta orden.", use_container_width=True):
+                        for s in [sku for sku in all_skus if sku != sys_config['sku_envio']]:
+                            is_disabled = s in st.session_state.disabled_skus[order]
+                            if st.checkbox(f"SKU {s}", value=not is_disabled, key=f"stock_{order}_{s}") == is_disabled:
+                                if is_disabled: st.session_state.disabled_skus[order].remove(s)
+                                else: st.session_state.disabled_skus[order].append(s)
+                                add_log(st.session_state.username, f"Modificó Stock en {order} (SKU: {s})")
+                                st.rerun()
+                with c2:
+                    if st.button(f"🔍 +5 Días", key=f"btn_{order}", help="Extiende en +5 días el margen de búsqueda hacia adelante para esta orden específica.", use_container_width=True):
+                        st.session_state.extra_days[order] = bonus + 5
+                        add_log(st.session_state.username, f"Extendió búsqueda en {order} (+5d)")
+                        st.rerun()
+                with c3:
+                    with st.expander("🛠️ Diag"):
+                        conn = sqlite3.connect(DB_PATH)
+                        if active_skus:
+                            ps = ",".join(['?'] * len(active_skus))
+                            df_diag = pd.read_sql(f"SELECT receipt_number, fecha, sku FROM facturas WHERE sku IN ({ps}) ORDER BY fecha DESC LIMIT 3", conn, params=active_skus)
+                            st.dataframe(df_diag, hide_index=True)
+                        conn.close()
 
-    # PAGINACIÓN
-    st.markdown("<br>", unsafe_allow_html=True)
-    p1, p2, p3 = st.columns([1, 2, 1])
-    with p1:
-        if st.button("« Anterior", use_container_width=True) and st.session_state.current_page > 1:
-            st.session_state.current_page -= 1; st.rerun()
-    with p2:
-        st.markdown(f"<p style='text-align:center; color:var(--text-heading); font-weight:800; font-size:15px; letter-spacing: 2px;'>{st.session_state.current_page} / {pages}</p>", unsafe_allow_html=True)
-    with p3:
-        if st.button("Siguiente »", use_container_width=True) and st.session_state.current_page < pages:
-            st.session_state.current_page += 1; st.rerun()
+        # PAGINACIÓN
+        st.markdown("<br>", unsafe_allow_html=True)
+        p1, p2, p3 = st.columns([1, 2, 1])
+        with p1:
+            if st.button("« Anterior", use_container_width=True) and st.session_state.current_page > 1:
+                st.session_state.current_page -= 1; st.rerun()
+        with p2:
+            st.markdown(f"<p style='text-align:center; color:var(--text-heading); font-weight:800; font-size:15px; letter-spacing: 2px;'>{st.session_state.current_page} / {pages}</p>", unsafe_allow_html=True)
+        with p3:
+            if st.button("Siguiente »", use_container_width=True) and st.session_state.current_page < pages:
+                st.session_state.current_page += 1; st.rerun()
