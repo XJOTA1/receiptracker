@@ -611,7 +611,7 @@ def init_users_db():
         
     c.execute("SELECT COUNT(*) FROM usuarios")
     if c.fetchone()[0] == 0:
-        c.execute("INSERT INTO usuarios VALUES (?, ?, ?)", ("admin", "1234", "admin"))
+        c.execute("INSERT INTO usuarios VALUES (?, ?, ?)", ("admin", "Alrio2026!", "admin"))
     conn.commit()
     conn.close()
 
